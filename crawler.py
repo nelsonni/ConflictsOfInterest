@@ -1,45 +1,61 @@
 #!/usr/bin/env python
 
-import getpass
+import time, sys
 import notifier
-from github import Github
+from github import Github, GithubException
 from datetime import datetime
 
-# from os import walk
-# import inspect
+# Configure with the appropriate user information before executing this script
+GITHUB_AUTH = ('username', 'password') # Github username and password (or token)
+GMAIL_AUTH = ('username', 'password') # Gmail username and password (or token)
+NOTIFY = ['email_addr1', 'email_addr2'] # Email addresses to receive notifications
 
-BANNED = ['legacy-homebrew', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome', 'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
-LIMIT = 40 # number of projects to examine
+BANNED = [  'legacy-homebrew', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome',
+            'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
 
-# nnelson8675 
-# pgcfvjahocybedch
+def main():
+    global github, repo_count
+    github = Github(GITHUB_AUTH[0], GITHUB_AUTH[1])
+    repo_count = 0    
 
-# github.GithubException.GithubException: 403 {u'documentation_url': u'https://developer.github.com/v3/#rate-limiting', u'message': u"API rate limit exceeded for 128.193.154.145. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)"}
+    run()
 
-# g = Github(getpass.get_user(), getpass.getpass())
 
-notifier.test_notice()
+def run():
+    global github, repo_count
 
-try:
-	i = 0
-	for repo in g.search_repositories("", stars=">1", sort="stars", order="desc"):
-		if repo.name in BANNED:
-			continue
-		else:
-			i += 1
-		
-		print("%d - project: %s" % (i, repo.full_name))
+    try:
+        for repo in github.search_repositories("", stars=">1", sort="stars", order="desc"):
+            
+            if repo.name in BANNED:
+                continue # skip repos in the banned list
 
-		merges = 0
-		commits = [c.commit for c in repo.get_commits().get_page(0)]
-		for commit in commits:
-			parents = [parent.sha for parent in commit.parents]
-			if len(parents) > 1:
-				merges += 1
-				#print("\t%s %s %s" % (commit.message, commit.sha, commit.author.name))
-		print("\tmerges: %d" % (merges))
+            repo_count += 1
+            print("%d - project: %s" % (repo_count, repo.full_name))
+            merges = 0
+            commits = [c.commit for c in repo.get_commits().get_page(0)]
+            for commit in commits:
+                parents = [parent.sha for parent in commit.parents]
+                if len(parents) > 1:
+                    merges += 1
+                    #print("\t%s %s %s" % (commit.message, commit.sha, commit.author.name))
+            print("\tmerges: %d" % (merges))
 
-		if i >= LIMIT:
-			break
-	break
-except 
+            if repo_count % 10 == 0:
+                print "API rate remaining: %d" % github.get_rate_limit().rate.remaining
+            if github.get_rate_limit().rate.remaining < 100:
+                print("Sleeping for %d seconds to replenish rate limit" % 3600)
+                time.sleep(3600) # sleep for 1 hour to allow rate limit to replenish
+
+    except GithubException, exception:
+        timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        notice = "Github Exception received by crawler.py on %s.\nExamined %d repositories.\n\nException: %s" % (timestamp, repo_count, exception)
+        for recipient in NOTIFY:
+            notifier.send_notice(GMAIL_AUTH[0], GMAIL_AUTH[1], "CS566_FinalProject failure detected", recipient, notice)
+        print(notice)
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+
+if __name__ == "__main__":
+    main()
