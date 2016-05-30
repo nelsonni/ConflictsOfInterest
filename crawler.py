@@ -40,21 +40,10 @@ def run():
 
             print("Getting all commits from: %s" % repo.full_name)
             allCommits = getAllCommits(repo)
+            mergedCommits = getMergedCommits(allCommits)
 
-            mergedCommits = []
-            for commit in allCommits:
-                parents = [parent.sha for parent in commit.parents]
-                if len(parents) > 2:
-                    mergedCommits.append(commit)
-                    merges += 1
             f.write(repo.name + "," + ",".join([mergedCommit.sha for mergedCommit in mergedCommits]) + "\n")
             print("\tmerges: %d" % (merges))
-
-            if repo_count % 10 == 0:
-                print "API rate remaining: %d" % github.get_rate_limit().rate.remaining
-            if github.get_rate_limit().rate.remaining < 100:
-                print("Sleeping for %d seconds to replenish rate limit" % SLEEP_TIME_SEC)
-                time.sleep(SLEEP_TIME_SEC) # sleep for 1 hour to allow rate limit to replenish
 
 
     except GithubException, exception:
@@ -67,17 +56,33 @@ def run():
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
+def getMergedCommits(commitList):
+    mergedCommits = []
+    for commit in allCommits:
+        parents = [parent.sha for parent in commit.parents]
+        if len(parents) > 2:
+            mergedCommits.append(commit)
+            merges += 1
+
+    return mergedCommits
+
 def getAllCommits(repo):
     numCommitsInPage = 30 #Pagination is 30 per page 
     currentPage = 0
     allCommits = []
     
     while numCommitsInPage > 0:
+        remainingRate = github.get_rate_limit().rate.remaining
+        if remainingRate < 100:
+            print("Sleeping for %d seconds to replenish rate limit" % SLEEP_TIME_SEC)
+            time.sleep(SLEEP_TIME_SEC) # sleep for 1 hour to allow rate limit to replenish
+            remainingRate = github.get_rate_limit().rate.remaining
+
         commits = [c.commit for c in repo.get_commits().get_page(currentPage)]
         numCommitsInPage = len(commits)
         allCommits += commits
 
-        sys.stdout.write("\rCommits Downloaded: %d" % len(allCommits))
+        sys.stdout.write("\rCommits Downloaded: %d, API Rate Remaining: %d" % (len(allCommits), github.get_rate_limit().rate.remaining))
         sys.stdout.flush()
 
         currentPage += 1
