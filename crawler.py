@@ -7,13 +7,15 @@ from datetime import datetime
 import inspect
 
 # Configure with the appropriate user information before executing this script
-GITHUB_AUTH = ('smckee6192', 'barefoot1') # Github username and password (or token)
+GITHUB_AUTH = ('smckee6192', '') # Github username and password (or token)
 GMAIL_AUTH = ('username', 'password') # Gmail username and password (or token)
 NOTIFY = ['email_addr1', 'email_addr2'] # Email addresses to receive notifications
 SLEEP_TIME_SEC = 3600
 
 BANNED = [  'legacy-homebrew', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome',
             'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
+
+f = open("out.csv", "w")
 
 def main():
     global github, repo_count
@@ -39,16 +41,13 @@ def run():
             print("Getting all commits from: %s" % repo.full_name)
             allCommits = getAllCommits(repo)
 
+            mergedCommits = []
             for commit in allCommits:
-                # commitMembers = inspect.getmembers(commit.tree)
-                # for each in commit.tree.raw_data:
-                #     print each
-                # import pdb; pdb.set_trace()
                 parents = [parent.sha for parent in commit.parents]
                 if len(parents) > 2:
-                    print commit.message
+                    mergedCommits.append(commit)
                     merges += 1
-                    #print("\t%s %s %s" % (commit.message, commit.sha, commit.author.name))
+            f.write(repo.name + "," + ",".join([mergedCommit.sha for mergedCommit in mergedCommits]) + "\n")
             print("\tmerges: %d" % (merges))
 
             if repo_count % 10 == 0:
@@ -57,7 +56,6 @@ def run():
                 print("Sleeping for %d seconds to replenish rate limit" % SLEEP_TIME_SEC)
                 time.sleep(SLEEP_TIME_SEC) # sleep for 1 hour to allow rate limit to replenish
 
-            currentPage += 1
 
     except GithubException, exception:
         timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
@@ -78,6 +76,7 @@ def getAllCommits(repo):
         commits = [c.commit for c in repo.get_commits().get_page(currentPage)]
         numCommitsInPage = len(commits)
         allCommits += commits
+
         sys.stdout.write("\rCommits Downloaded: %d" % len(allCommits))
         sys.stdout.flush()
 
