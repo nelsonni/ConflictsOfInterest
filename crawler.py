@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 import time, sys
-# import notifier
+import config_loader
+import notifier
 from github import Github, GithubException
 from datetime import datetime
 import inspect
 
-# Configure with the appropriate user information before executing this script
-GITHUB_AUTH = ('smckee6192', '') # Github username and password (or token)
-GMAIL_AUTH = ('username', 'password') # Gmail username and password (or token)
-NOTIFY = ['email_addr1', 'email_addr2'] # Email addresses to receive notifications
-SLEEP_TIME_SEC = 3600
+GITHUB_AUTH = config_loader.get('GITHUB_AUTH')
+GMAIL_AUTH = config_loader.get('GMAIL_AUTH')
+NOTIFY = config_loader.get('NOTIFY')
+SLEEP_TIME_SEC = config_loader.get('SLEEP_TIME_SEC')
 
 BANNED = [  'legacy-homebrew', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome',
             'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
@@ -19,10 +19,11 @@ f = open("out.csv", "w")
 
 def main():
     global github, repo_count
-    github = Github(GITHUB_AUTH[0], GITHUB_AUTH[1])
+    
+    github = Github(GITHUB_AUTH['username'], GITHUB_AUTH['password'])
     repo_count = 0    
 
-    run()
+    #run()
 
 
 def run():

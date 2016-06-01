@@ -1,8 +1,8 @@
 from git import *
 import inspect
+import config_loader
 
-# REPO_PATH = "/Users/Shane/Documents/FreeCodeCamp"
-REPO_PATH = "/Users/Shane/Documents/meteor"
+REPO_PATH = config_loader.get('REPO_PATH')
 
 def main():
     repo = Repo(REPO_PATH)
@@ -13,9 +13,7 @@ def main():
     lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
-    for i,commit in enumerate(mergeSetDict):
-        print("%d: %s" % (i,commit))
-        parent1SHA = str(mergeSetDict[commit][0])
+    for commit in mergeSetDict:
         parent1 = lookupDict[mergeSetDict[commit][0]]
         parent2 = lookupDict[mergeSetDict[commit][1]]
 
@@ -52,8 +50,6 @@ def createHashToMergedCommitDict(repo, mergeSetDict):
     commits = list(repo.iter_commits("master"))
     for commit in commits:
         commitSHA = str(commit.hexsha)
-
-        if (commitSHA == 'c7354e15ea02f8cb5d896aa4263d7bbc78567b3d'): print("parents: %s" % (mergeSetDict[commitSHA]))
         
         if commitSHA in mergeSetDict:
             hashToCommitsDict[commitSHA] = commit
@@ -71,8 +67,7 @@ def createMergeSetDict(repo):
     commitSHAs = repo.git.rev_list(merges=True, all=True)
     commitSHAsList = commitSHAs.split('\n')
 
-    for i, commitSHA in enumerate(commitSHAsList):
-        if (i%10 == 0): print("%d" % i)
+    for commitSHA in commitSHAsList:
     	parentsString = repo.git.rev_list(commitSHA, parents=True)
         relevantLine = parentsString.split('\n')[0]
         parents = relevantLine.split(' ')[1:]
