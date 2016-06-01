@@ -1,19 +1,21 @@
 from git import *
 import inspect
 
-REPO_PATH = "/home/nelsonni/Workspace/FreeCodeCamp"
+# REPO_PATH = "/Users/Shane/Documents/FreeCodeCamp"
+REPO_PATH = "/Users/Shane/Documents/meteor"
 
 def main():
     repo = Repo(REPO_PATH)
+    repo.git.checkout("master")
+    print getCurrentBranch(repo)
 
     mergeSetDict = createMergeSetDict(repo)
     lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
     for i,commit in enumerate(mergeSetDict):
-        if (commit == 'c7354e15ea02f8cb5d896aa4263d7bbc78567b3d'):
-                       c7354e15ea02f8cb5d896aa4263d7bbc78567b3d
         print("%d: %s" % (i,commit))
+        parent1SHA = str(mergeSetDict[commit][0])
         parent1 = lookupDict[mergeSetDict[commit][0]]
         parent2 = lookupDict[mergeSetDict[commit][1]]
 
@@ -40,13 +42,14 @@ def classifyResolutionPattern(versionA, versionB, finalVersion):
 
 # returns name of current branch
 def getCurrentBranch(repo):
-    return repo.git.branch()[2:]
+    return repo.git.rev_parse('HEAD', abbrev_ref=True)
+    # git rev-parse --abbrev-ref HEAD
 
 # converts dictionary of SHAs to dictionary of commit objects filtered by merge status
 def createHashToMergedCommitDict(repo, mergeSetDict):
     hashToCommitsDict = {}
 
-    commits = list(repo.iter_commits(getCurrentBranch(repo)))
+    commits = list(repo.iter_commits("master"))
     for commit in commits:
         commitSHA = str(commit.hexsha)
 
