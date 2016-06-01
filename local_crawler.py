@@ -10,15 +10,15 @@ def main():
     repo = Repo(REPO_PATH)
     repo.git.checkout("master")
 
-    print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
+    # print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
 
-    # mergeSetDict = createMergeSetDict(repo)
-    # lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
+    mergeSetDict = createMergeSetDict(repo)
+    lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
 
-    # for i,commitHash in enumerate(mergeSetDict):
-    #     print("%d: %s" % (i,commitHash))
-    #     commit = lookupDict[commitHash]
-    #     parent1SHA, parent2SHA = mergeSetDict[commitHash]
+    for i,commitHash in enumerate(mergeSetDict):
+        print("%d: %s" % (i,commitHash))
+        commit = lookupDict[commitHash]
+        parent1SHA, parent2SHA = mergeSetDict[commitHash]
 
 
 def getLang(repo):
@@ -73,15 +73,20 @@ def getDiff(commit1, commit2):
 def getCommit(commitDict, SHA):
     return commitDict[SHA]
 
-def checkMergeForConflicts(repo):
-    found_a_conflict = False
-    unmerged_blobs = repo.index.unmerged_blobs()
+def isMergeConflict(repo, commit1, commit2):
+    # repo.index.merge_tree(commit1, commit2)
+    pass
 
-    for path in unmerged_blobs:
-      list_of_blobs = unmerged_blobs[path]
-      for (stage, blob) in list_of_blobs:
-        if stage != 0:
-          found_a_conflict = true
+
+# def checkMergeForConflicts(repo):
+#     found_a_conflict = False
+#     unmerged_blobs = repo.index.unmerged_blobs()
+
+#     for path in unmerged_blobs:
+#       list_of_blobs = unmerged_blobs[path]
+#       for (stage, blob) in list_of_blobs:
+#         if stage != 0:
+#           found_a_conflict = true
 
 # returns pattern name for classification
 def classifyResolutionPattern(versionA, versionB, finalVersion):
@@ -95,22 +100,20 @@ def getCurrentBranch(repo):
 # converts dictionary of SHAs to dictionary of commit objects filtered by merge status
 def createHashToMergedCommitDict(repo, mergeSetDict):
     hashToCommitsDict = {}
-
-    commits = list(repo.iter_commits("master"))
-    for commit in commits:
-        commitSHA = str(commit.hexsha)
-        
-        if commitSHA in mergeSetDict:
-            hashToCommitsDict[commitSHA] = commit
-        else:
-            for parents in mergeSetDict.values():
-                if commitSHA in parents:
-                     hashToCommitsDict[commitSHA] = commit
+    for merge in mergeSetDict:
+        print('Finding commit: %s' % merge)
+        hashToCommitsDict[merge] = findCommitFromSHA(repo, merge)
+        parents = mergeSetDict[merge]
+        for parent in parents:
+            print('\tFinding parent: %s' % parent)
+            if parent not in hashToCommitsDict:
+                hashToCommitsDict[parent] = findCommitFromSHA(repo, parent)
 
     return hashToCommitsDict
 
 # This identifies merges in the same way that Git's rev-list command does
 def createMergeSetDict(repo):
+    print('creating MergeSetDict')
     mergeSetDict = {}
     # git rev-list --merges --all
     commitSHAs = repo.git.rev_list(merges=True, all=True)
@@ -122,6 +125,8 @@ def createMergeSetDict(repo):
         parents = relevantLine.split(' ')[1:]
 
         mergeSetDict[str(commitSHA)] = [str(x) for x in parents]
+
+    print('MergeSetDict done')
 
     return mergeSetDict
 
