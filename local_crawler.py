@@ -6,12 +6,16 @@ REPO_PATH = "/home/nelsonni/Workspace/FreeCodeCamp"
 def main():
     repo = Repo(REPO_PATH)
 
-    mergeSetDict = createParentDict(repo)
-    lookupDict = createHashToMergedCommitDict(repo, parentDict)
+    mergeSetDict = createMergeSetDict(repo)
+    lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
-    for commit in mergeSetDict:
-        
+    for i,commit in enumerate(mergeSetDict):
+        if (commit == 'c7354e15ea02f8cb5d896aa4263d7bbc78567b3d'):
+                       c7354e15ea02f8cb5d896aa4263d7bbc78567b3d
+        print("%d: %s" % (i,commit))
+        parent1 = lookupDict[mergeSetDict[commit][0]]
+        parent2 = lookupDict[mergeSetDict[commit][1]]
 
 # returns text of 
 def getDiff(commit1, commit2):
@@ -39,38 +43,40 @@ def getCurrentBranch(repo):
     return repo.git.branch()[2:]
 
 # converts dictionary of SHAs to dictionary of commit objects filtered by merge status
-def createHashToMergedCommitDict(repo, parentDict):
+def createHashToMergedCommitDict(repo, mergeSetDict):
     hashToCommitsDict = {}
 
     commits = list(repo.iter_commits(getCurrentBranch(repo)))
     for commit in commits:
         commitSHA = str(commit.hexsha)
+
+        if (commitSHA == 'c7354e15ea02f8cb5d896aa4263d7bbc78567b3d'): print("parents: %s" % (mergeSetDict[commitSHA]))
         
-        if commitSHA in parentDict:
+        if commitSHA in mergeSetDict:
             hashToCommitsDict[commitSHA] = commit
         else:
-            for parents in parentDict.values():
+            for parents in mergeSetDict.values():
                 if commitSHA in parents:
                      hashToCommitsDict[commitSHA] = commit
 
     return hashToCommitsDict
 
 # This identifies merges in the same way that Git's rev-list command does
-def createParentDict(repo):
-    parentDict = {}
+def createMergeSetDict(repo):
+    mergeSetDict = {}
     # git rev-list --merges --all
     commitSHAs = repo.git.rev_list(merges=True, all=True)
     commitSHAsList = commitSHAs.split('\n')
 
-    for commitSHA in commitSHAsList:
-        print("commit: %s" % commitSHA)
+    for i, commitSHA in enumerate(commitSHAsList):
+        if (i%10 == 0): print("%d" % i)
     	parentsString = repo.git.rev_list(commitSHA, parents=True)
-    	relevantLine = parentsString.split('\n')[0]
-    	parents = relevantLine.split(' ')[1:]
+        relevantLine = parentsString.split('\n')[0]
+        parents = relevantLine.split(' ')[1:]
 
-        parentDict[commitSHA] = parents
+        mergeSetDict[str(commitSHA)] = [str(x) for x in parents]
 
-    return parentDict
+    return mergeSetDict
 
 if __name__ == "__main__":
     main()
