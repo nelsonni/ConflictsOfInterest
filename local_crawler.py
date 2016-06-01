@@ -1,6 +1,7 @@
 from git import *
 import inspect
 import config_loader
+import json, urllib2
 
 REPO_PATH = config_loader.get('REPO_PATH')
 # REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
@@ -18,6 +19,23 @@ def main():
     #     print("%d: %s" % (i,commitHash))
     #     commit = lookupDict[commitHash]
     #     parent1SHA, parent2SHA = mergeSetDict[commitHash]
+
+
+def getLang(repo):
+# get top programming language for repository
+    remote_url = repo.remotes[0].url
+
+    # handle SSH url, else handle HTTPS url; Warning: BLACK MAGIC!!!
+    if (remote_url[-4:] == '.git'):
+        owner = remote_url.split(":")[-1][:-4].split("/")[-2]
+        project = remote_url.split(":")[-1][:-4].split("/")[-1]
+    else:
+        owner = remote_url.split("/")[-2]
+        project = remote_url.split("/")[-1]
+
+    rawData = urllib2.urlopen('https://api.github.com/repos/' + owner + '/' + project + '/languages').read()
+    jsonData = json.loads(rawData)
+    return max(jsonData, key=jsonData.get)
 
 def findAllBranches(repo):
     branchList = []
