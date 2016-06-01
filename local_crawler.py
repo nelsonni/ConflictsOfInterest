@@ -3,21 +3,25 @@ import inspect
 import config_loader
 import json, urllib2
 
-REPO_PATH = config_loader.get('REPO_PATH')
-# REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
+# REPO_PATH = config_loader.get('REPO_PATH')
+REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
 
 def main():
     repo = Repo(REPO_PATH)
     repo.git.checkout("master")
 
     # print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
-
+    
+    # print isMergeConflict(repo, findCommitFromSHA(repo,'1e80e4ca46e69e56d01df4626190507babc7d225'), findCommitFromSHA(repo, '8b733a2eae8072a8934c11e6607efa22a7f86b27'))
     mergeSetDict = createMergeSetDict(repo)
     lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
 
     for i,commitHash in enumerate(mergeSetDict):
-        print("%d: %s" % (i,commitHash))
+        # print("%d: %s" % (i,commitHash))
         commit = lookupDict[commitHash]
+        # print commit.message
+        print isMergeConflict(repo, commit.parents[0], commit.parents[1])
+        repo.delete_head('commit1') 
         parent1SHA, parent2SHA = mergeSetDict[commitHash]
 
 
@@ -74,19 +78,27 @@ def getCommit(commitDict, SHA):
     return commitDict[SHA]
 
 def isMergeConflict(repo, commit1, commit2):
-    # repo.index.merge_tree(commit1, commit2)
-    pass
+    master = repo.heads.master 
+    new_branch = repo.create_head('commit1')  
+    new_branch.commit = commit1
+    merge_base = repo.merge_base(new_branch, master)
+    repo.index.merge_tree(master, base=merge_base)
+    # repo.delete_head('commit1') 
+
+    return checkMergeForConflicts(repo)
 
 
-# def checkMergeForConflicts(repo):
-#     found_a_conflict = False
-#     unmerged_blobs = repo.index.unmerged_blobs()
+def checkMergeForConflicts(repo):
+    found_a_conflict = False
+    unmerged_blobs = repo.index.unmerged_blobs()
+    print unmerged_blobs
 
-#     for path in unmerged_blobs:
-#       list_of_blobs = unmerged_blobs[path]
-#       for (stage, blob) in list_of_blobs:
-#         if stage != 0:
-#           found_a_conflict = true
+    for path in unmerged_blobs:
+      list_of_blobs = unmerged_blobs[path]
+      for (stage, blob) in list_of_blobs:
+        if stage != 0:
+          found_a_conflict = True
+    return found_a_conflict
 
 # returns pattern name for classification
 def classifyResolutionPattern(versionA, versionB, finalVersion):
