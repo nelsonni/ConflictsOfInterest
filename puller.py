@@ -15,5 +15,5 @@ for each in jsonData['items']:
 for idx,r in enumerate(repos):
     print("%d - url: %s, folder: /Users/nelsonni/Downloads/%s" % (idx + 1, r[1], r[0]))
     url = r[1]
-    path = "/Users/nelsonni/Downloads/" + r[0]
+    path = "/Users/Shane/Downloads/" + r[0]
     Repo.clone_from(url, path)

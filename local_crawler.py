@@ -13,9 +13,17 @@ def main():
     lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
-    for commit in mergeSetDict:
-        parent1 = lookupDict[mergeSetDict[commit][0]]
-        parent2 = lookupDict[mergeSetDict[commit][1]]
+    for i,commit in enumerate(mergeSetDict):
+        print("%d: %s" % (i,commit))
+        try:
+            parent1 = lookupDict[mergeSetDict[commit][0]]
+        except KeyError:
+            print("Error: Key not found: %s" % mergeSetDict[commit][0])
+
+        try:
+            parent2 = lookupDict[mergeSetDict[commit][1]]
+        except KeyError:
+            print("Error: Key not found: %s" % mergeSetDict[commit][1])
 
 # returns text of 
 def getDiff(commit1, commit2):
