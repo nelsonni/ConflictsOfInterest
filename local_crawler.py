@@ -1,7 +1,8 @@
 from git import *
 import inspect
+import config_loader
 
-REPO_PATH = "/home/nelsonni/Workspace/FreeCodeCamp"
+REPO_PATH = config_loader.get('REPO_PATH')
 
 def main():
     repo = Repo(REPO_PATH)
@@ -11,9 +12,6 @@ def main():
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
     for i,commit in enumerate(mergeSetDict):
-        if (commit == 'c7354e15ea02f8cb5d896aa4263d7bbc78567b3d'):
-                       c7354e15ea02f8cb5d896aa4263d7bbc78567b3d
-        print("%d: %s" % (i,commit))
         parent1 = lookupDict[mergeSetDict[commit][0]]
         parent2 = lookupDict[mergeSetDict[commit][1]]
 

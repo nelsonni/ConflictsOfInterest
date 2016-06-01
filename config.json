@@ -1,8 +1,0 @@
-{
-    "GITHUB_AUTH":      {"username": "",
-                         "password": ""},
-    "GMAIL_AUTH":       {"username": "",
-                         "password": ""},
-    "NOTIFY":           ["email_addr1", "email_addr2"],
-    "SLEEP_TIME_SEC":   "3600"
-}
