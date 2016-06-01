@@ -7,8 +7,8 @@ def main():
     repo = Repo(REPO_PATH)
 
     # parentDict = {}
-    # parentDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'] = ['704f757cbb3749889778584a8e1d91a6f630fbd0', 'e0867ec556647f4fa4a505f6d1a548b7079fcd73']
-    parentDict = createParentDict(repo)
+    parentDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'] = ['704f757cbb3749889778584a8e1d91a6f630fbd0', 'e0867ec556647f4fa4a505f6d1a548b7079fcd73']
+    # parentDict = createParentDict(repo)
     hashToMergedCommitDict = createHashToMergedCommitDict(repo, parentDict)
     # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
 
@@ -18,8 +18,16 @@ def getDiff(commit1, commit2):
 def classifyResolutionPattern(versionA, versionB, finalVersion):
     pass
 
-def findCommonAnscestor(commit1, commit2):
-    pass
+def checkMergeForConflicts(repo):
+    found_a_conflict = False
+    unmerged_blobs = repo.index.unmerged_blobs()
+
+    for path in unmerged_blobs:
+      list_of_blobs = unmerged_blobs[path]
+      for (stage, blob) in list_of_blobs:
+        if stage != 0:
+          found_a_conflict = true
+
 
 def getCommit(repo, sha):
     pass
