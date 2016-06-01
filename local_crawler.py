@@ -3,27 +3,50 @@ import inspect
 import config_loader
 
 REPO_PATH = config_loader.get('REPO_PATH')
+# REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
 
 def main():
     repo = Repo(REPO_PATH)
     repo.git.checkout("master")
-    print getCurrentBranch(repo)
 
-    mergeSetDict = createMergeSetDict(repo)
-    lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
-    # print(hashToMergedCommitDict['ee746da65ab814bc1bb1863a73cac38a476b2e1a'].parents)
+    print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
 
-    for i,commit in enumerate(mergeSetDict):
-        print("%d: %s" % (i,commit))
-        try:
-            parent1 = lookupDict[mergeSetDict[commit][0]]
-        except KeyError:
-            print("Error: Key not found: %s" % mergeSetDict[commit][0])
+    # mergeSetDict = createMergeSetDict(repo)
+    # lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
 
-        try:
-            parent2 = lookupDict[mergeSetDict[commit][1]]
-        except KeyError:
-            print("Error: Key not found: %s" % mergeSetDict[commit][1])
+    # for i,commitHash in enumerate(mergeSetDict):
+    #     print("%d: %s" % (i,commitHash))
+    #     commit = lookupDict[commitHash]
+    #     parent1SHA, parent2SHA = mergeSetDict[commitHash]
+
+def findAllBranches(repo):
+    branchList = []
+    for r in repo.refs:
+        if "origin/" in r.name:
+            branchList.append(r.name)
+    return branchList
+
+def findCommitFromSHA(repo, sha):
+
+    repo.git.checkout("master")
+    commits = list(repo.iter_commits("master"))
+    for commit in commits:
+        commitSHA = str(commit.hexsha)
+        if sha == commitSHA:
+            return commit
+
+    print("Not found in master")
+
+    for branchName in findAllBranches(repo):
+        repo.git.checkout(branchName)
+        commits = list(repo.iter_commits(branchName))
+        for commit in commits:
+            commitSHA = str(commit.hexsha)
+            if sha == commitSHA:
+                return commit
+        print("Not found in %s" % branchName)
+        
+    return None
 
 # returns text of 
 def getDiff(commit1, commit2):
