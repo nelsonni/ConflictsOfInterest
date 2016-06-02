@@ -27,6 +27,9 @@ def main():
             parent1SHA, parent2SHA = mergesDict[commitHash]
             conflicts = findConflicts(repo, list(commit.parents))
             for file in conflicts:
+                if len(file) < 2:
+                    print "WARNING: list index out of range"
+                    continue
                 print classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit))
     else:
         puller.pull_repositories()
@@ -36,15 +39,21 @@ def main():
             repo = Repo(downloadedRepoPath)
             repo.git.checkout("master")
 
+            print "repo: %s, lang: %s" % (repo.remotes[0].url, getLang(repo))
             mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
             for i,commitHash in enumerate(mergesDict):
-                # print("%d: %s" % (i,commitHash))
                 commit = commitsDict[commitHash]
-                print commit
+                conflicts = findConflicts(repo, list(commit.parents))
                 parent1SHA, parent2SHA = mergesDict[commitHash]
-                if len(findConflicts(repo, list(commit.parents))) > 0:
-                    print "conflicts are multiplying"
+
+                print "commit: %s, conflict count: %d" % (commit, len(conflicts))
+
+                for file in conflicts:
+                    if len(file) < 2:
+                        print "WARNING: list index out of range, skipping"
+                        continue
+                    print classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit)) 
 
 def getDiff(commit):
     msg = ""
