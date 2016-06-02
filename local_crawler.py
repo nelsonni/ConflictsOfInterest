@@ -8,6 +8,8 @@ import os
 from subprocess import Popen, PIPE
 import pattern_classifier as classifier
 import puller
+import datetime
+import notifier
 
 REPO_PATH = config_loader.get('REPO_PATH')
 EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" # Git has a well-known, or at least sort-of-well-known, empty tree with this SHA1
@@ -17,6 +19,7 @@ def main():
     if DEBUG:
         repo = Repo(REPO_PATH)
         repo.git.checkout("master")
+        project = project = repo.remotes[0].url.split(":")[-1][:-4].split("/")[-1]
 
         mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
@@ -32,28 +35,39 @@ def main():
                     continue
                 print classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit))
     else:
-        puller.pull_repositories()
-        download_dir = config_loader.get('DOWNLOAD_PATH')
-        downloadedRepos = [x[0] for x in os.walk(download_dir)][1:]
-        for downloadedRepoPath in downloadedRepos:
-            repo = Repo(downloadedRepoPath)
-            repo.git.checkout("master")
+        try:
+            puller.pull_repositories()
+            download_dir = config_loader.get('DOWNLOAD_PATH')
+            downloadedRepos = [x[0] for x in os.walk(download_dir)][1:]
+            for downloadedRepoPath in downloadedRepos:
+                repo = Repo(downloadedRepoPath)
+                repo.git.checkout("master")
 
-            print "repo: %s, lang: %s" % (repo.remotes[0].url, getLang(repo))
-            mergesDict, commitsDict = data_manager.loadDictionaries(repo)
+                log(project, ("repo: %s, lang: %s" % (repo.remotes[0].url, getLang(repo)))) 
+                mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
-            for i,commitHash in enumerate(mergesDict):
-                commit = commitsDict[commitHash]
-                conflicts = findConflicts(repo, list(commit.parents))
-                parent1SHA, parent2SHA = mergesDict[commitHash]
+                for i,commitHash in enumerate(mergesDict):
+                    commit = commitsDict[commitHash]
+                    conflicts = findConflicts(repo, list(commit.parents))
+                    parent1SHA, parent2SHA = mergesDict[commitHash]
 
-                print "commit: %s, conflict count: %d" % (commit, len(conflicts))
+                    log(project, ("commit: %s, conflict count: %d" % (commit, len(conflicts))))
 
-                for file in conflicts:
-                    if len(file) < 2:
-                        print "WARNING: list index out of range, skipping"
-                        continue
-                    print classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit)) 
+                    for file in conflicts:
+                        if len(file) < 2:
+                            print "WARNING: list index out of range, skipping"
+                            continue
+                        log(project, classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit)))
+        except exception:
+            timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+            notice = "Exception received by local_crawler.py on %s.\n\nException: %s" % (timestamp, exception)
+            notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, notice)
+
+def log(project, str):
+    ts = datetime.datetime.now().isoformat()
+    f = open(project+'.'+ts+'.log', 'a+')
+    f.write(str)
+    f.close()
 
 def getDiff(commit):
     msg = ""
