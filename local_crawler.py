@@ -4,7 +4,7 @@ import inspect
 import config_loader
 import data_manager
 import json, urllib2
-import os
+import os, sys
 from subprocess import Popen, PIPE
 import pattern_classifier as classifier
 import puller
@@ -17,11 +17,11 @@ EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" # Git has a well-kno
 DEBUG = False
 
 def main():
-    if DEBUG:
-        repo = Repo(REPO_PATH)
-        repo.git.checkout("master")
-        project = project = repo.remotes[0].url.split(":")[-1][:-4].split("/")[-1]
+    repo = Repo(REPO_PATH)
+    repo.git.checkout("master")
+    project = project = repo.remotes[0].url.split(":")[-1][:-4].split("/")[-1]
 
+    if DEBUG:
         mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
         for i,commitHash in enumerate(mergesDict):
@@ -60,13 +60,15 @@ def main():
                             continue
                         log(project, classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit)))
         except:
+            print("Unexpected error:", sys.exc_info()[0])
             timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-            notice = "Exception received by local_crawler.py on %s." % timestamp
+            notice = "Exception received by local_crawler.py on %s.\n\nException: %s" % (timestamp, sys.exc_info()[0])
             for recipient in config_loader.get('NOTIFY'):
-                notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, notice)
+                notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, None, notice)
+            raise
 
 def log(project, str):
-    ts = datetime.datetime.now().isoformat()
+    ts = datetime.now().isoformat()
     f = open('data/'+project+'.'+ts+'.log', 'a+')
     f.write(str)
     f.close()
