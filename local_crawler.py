@@ -44,12 +44,16 @@ def main():
                 print "downloadedRepoPath: %s" % downloadedRepoPath
                 repo = Repo(downloadedRepoPath)
                 repo.git.checkout("master")
-                project = project = repo.remotes[0].url.split(":")[-1][:-4].split("/")[-1]
+                project = downloadedRepoPath.split('/')[-1]
+
+                if not project == 'reveal.js':
+                    continue
 
                 log(project, ("repo: %s, lang: %s" % (repo.remotes[0].url, getLang(repo)))) 
                 mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
                 for i,commitHash in enumerate(mergesDict):
+                    print "commit: %s" % commitHash
                     commit = commitsDict[commitHash]
                     conflicts = findConflicts(repo, list(commit.parents))
                     parent1SHA, parent2SHA = mergesDict[commitHash]
@@ -60,7 +64,8 @@ def main():
                         if len(file) < 2:
                             print "WARNING: list index out of range, skipping"
                             continue
-                        line_count = count(file[0]['lines'].splitlines()) + count(file[1]['lines'].splitlines())
+                        print "conflicting: %s" % file[0]['file']
+                        line_count = len(file[0]['lines'].splitlines()) + len(file[1]['lines'].splitlines())
                         classification = classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit))
                         log(project, "conflict file: %s, size: %d lines, pattern: %s" % (file[0]['file'], line_count, classification))
         except:
@@ -150,6 +155,8 @@ def findConflicts(repo, commits):
                         conflict_filenames.append(line.split('Merge conflict in ')[-1])
                     if "deleted in " in line:
                         conflict_filenames.append(line.split(' deleted in ')[0].split(': ')[-1])
+                    else:
+                        continue
 
                 for filename in conflict_filenames:
                     conflictSet.append(getConflictSet(repo, filename))

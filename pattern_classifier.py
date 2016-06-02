@@ -51,9 +51,9 @@ def is_take_one(versionA, versionB, mergeVersion):
 
     percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
-    if percentLinesBInMerge > 90 and percentLinesAInMerge < 10:
+    if percentLinesBInMerge > 80 and percentLinesAInMerge < 10:
         return True
-    if percentLinesAInMerge > 90 and percentLinesBInMerge < 10:
+    if percentLinesAInMerge > 80 and percentLinesBInMerge < 10:
         return True
 
     return False
@@ -78,7 +78,7 @@ def is_interweaving(versionA, versionB, mergeVersion):
 
     percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
-    if percentLinesBInMerge > 90 and percentLinesAInMerge > 90:
+    if percentLinesBInMerge > 60 and percentLinesAInMerge > 60:
         return True
 
     return False
@@ -137,9 +137,9 @@ def is_take_one_augmentation(versionA, versionB, mergeVersion):
     percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
     if (linesAInMerge + linesBInMerge) < len(mergeVersion.split('\n')):
-        if percentLinesBInMerge > 90 and percentLinesAInMerge < 10:
+        if percentLinesBInMerge > 80 and percentLinesAInMerge < 10:
             return True
-        if percentLinesAInMerge > 90 and percentLinesBInMerge < 10:
+        if percentLinesAInMerge > 80 and percentLinesBInMerge < 10:
             return True
 
     return False
@@ -165,7 +165,7 @@ def is_interweaving_augmented(versionA, versionB, mergeVersion):
     percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
     if (linesAInMerge + linesBInMerge) < len(mergeVersion.split('\n')):
-        if percentLinesBInMerge > 90 and percentLinesAInMerge < 90:
+        if percentLinesBInMerge > 60 and percentLinesAInMerge < 60:
             return True
 
     return False
