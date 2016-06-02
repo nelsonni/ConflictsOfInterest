@@ -141,9 +141,15 @@ def getConflictSet(repo, filename):
     content = open(filename, 'r').read()
     
     if '=======' not in content:
-        print "STRANGENESS!: look in git history of %s" % path
+        print "STRANGENESS!: no conflict for %s" % path
         return []
-    (left, right) = content.split('=======')
+    if len(content.split('=======')) > 2:
+        print "MORE WEIRDNESS!: more than one conflict for %s" % path
+        s = content.split('=======')
+        left = s[0]
+        right = s[1]
+    else: 
+        (left, right) = content.split('=======')
     leftSHA = left.splitlines()[0].split(' ')[-1]
     rightSHA = right.splitlines()[-1].split(' ')[-1]
     if leftSHA == 'HEAD':
