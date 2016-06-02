@@ -11,17 +11,8 @@ def main():
     repo = Repo(REPO_PATH)
     repo.git.checkout("master")
 
-    try:
-        mergesDict = data_manager.PersistentDict.load(open('data/'+project+'.merges.json', 'wb'))
-    except Exception:
-        mergesDict = data_manager.PersistentDict('data/'+project+'.merges.json', 'c', format='json')
-        populateMergesDict(repo, mergesDict)
+    mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
-    try:
-        commitsDict = data_manager.PersistentDict.load(open('data/'+project+'.commits.json', 'wb'))
-    except Exception:
-        commitsDict = data_manager.PersistentDict('data/'+project+'.commits.json', 'c', format='json')
-        populateCommitsDict(repo, mergesDict, commitsDict)
         
 
     for i,commitHash in enumerate(mergeSetDict):
@@ -30,9 +21,6 @@ def main():
         # print commit.message
         print does_merge_have_conflict(repo, commit.parents)
         parent1SHA, parent2SHA = mergeSetDict[commitHash]
-
-    mergesDict.sync()
-    commitsDict.sync()
 
 # determine the programming language most used in a repository
 def getLang(repo):
@@ -64,28 +52,6 @@ def findAllBranches(repo):
         if "origin/" in r.name:
             branchList.append(r.name)
     return branchList
-
-def findCommitFromSHA(repo, sha):
-
-    repo.git.checkout("master")
-    commits = list(repo.iter_commits("master"))
-    for commit in commits:
-        commitSHA = str(commit.hexsha)
-        if sha == commitSHA:
-            return commit
-
-    print("Not found in master")
-
-    for branchName in findAllBranches(repo):
-        repo.git.checkout(branchName)
-        commits = list(repo.iter_commits(branchName))
-        for commit in commits:
-            commitSHA = str(commit.hexsha)
-            if sha == commitSHA:
-                return commit
-        print("Not found in %s" % branchName)
-        
-    return None
 
 # returns text of 
 def getDiff(commit1, commit2):
@@ -170,33 +136,6 @@ def classifyResolutionPattern(versionA, versionB, finalVersion):
 def getCurrentBranch(repo):
     return repo.git.rev_parse('HEAD', abbrev_ref=True)
     # git rev-parse --abbrev-ref HEAD
-
-# populates commit SHA -> commit object dictionary for merge-related commits (parent and merge)
-def populateCommitsDict(repo, mergesDict, commitsDict):
-    print("Populating commitsDict for %s..." % repo.active_branch)
-    hashToCommitsDict = {}
-    for merge in mergesDict:
-        print('Finding commit: %s' % merge)
-        hashToCommitsDict[merge] = findCommitFromSHA(repo, merge)
-        parents = mergesDict[merge]
-        for parent in parents:
-            print('\tFinding parent: %s' % parent)
-            if parent not in hashToCommitsDict:
-                hashToCommitsDict[parent] = findCommitFromSHA(repo, parent)
-
-    return hashToCommitsDict
-
-
-# populates merge SHA -> parent SHA dictionary, similar to 'git rev-list --merges --all' command
-def populateMergesDict(repo, mergesDict):
-    print("Populating mergesDict for %s..." % repo.active_branch)
-    commitSHAs = repo.git.rev_list(merges=True, all=True)
-    commitSHAsList = commitSHAs.split('\n')
-    for commitSHA in commitSHAsList:
-        parentsString = repo.git.rev_list(commitSHA, parents=True)
-        relevantLine = parentsString.split('\n')[0]
-        parents = relevantLine.split(' ')[1:]
-        mergesDict[str(commitSHA)] = [str(x) for x in parents]
 
 if __name__ == "__main__":
     main()
