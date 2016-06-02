@@ -3,6 +3,8 @@ import inspect
 import config_loader
 import data_manager
 import json, urllib2
+import os
+from subprocess import Popen, PIPE
 
 REPO_PATH = config_loader.get('REPO_PATH')
 
@@ -13,14 +15,13 @@ def main():
 
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
-        
 
-    for i,commitHash in enumerate(mergeSetDict):
+    for i,commitHash in enumerate(mergesDict):
         # print("%d: %s" % (i,commitHash))
-        commit = lookupDict[commitHash]
-        # print commit.message
-        print does_merge_have_conflict(repo, commit.parents)
-        parent1SHA, parent2SHA = mergeSetDict[commitHash]
+        commit = commitsDict[commitHash]
+        print commit
+        print does_merge_have_conflict(repo, list(commit.parents))
+        parent1SHA, parent2SHA = mergesDict[commitHash]
 
 # determine the programming language most used in a repository
 def getLang(repo):
@@ -46,13 +47,6 @@ def diffDat(repo, mergesDict, lookupDict):
     print("lookupDict: %s" % type(lookupDict.keys()))
     #print Diffable.diff(a, b)
 
-def findAllBranches(repo):
-    branchList = []
-    for r in repo.refs:
-        if "origin/" in r.name:
-            branchList.append(r.name)
-    return branchList
-
 # returns text of 
 def getDiff(commit1, commit2):
     pass
@@ -60,7 +54,7 @@ def getDiff(commit1, commit2):
 def getCommit(commitsDict, SHA):
     return commitsDict[SHA]
 
-def does_merge_have_conflict(commits, repo):
+def does_merge_have_conflict(repo,commits):
   old_wd = os.getcwd()
   os.chdir(repo.working_dir)
 

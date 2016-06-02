@@ -54,13 +54,20 @@ def findCommitFromSHA(repo, sha):
         print("Not found in %s" % branchName)    
     return None
 
+def findAllBranches(repo):
+    branchList = []
+    for r in repo.refs:
+        if "origin/" in r.name:
+            branchList.append(r.name)
+    return branchList
+
 # populates commit hash -> commit object dictionary
 def populateCommitsDict(repo, mDict, cDict):
     if DEBUG: print("Populating commitsDict...")
     for merge in mDict:
         print('Finding commit: %s' % merge)
         cDict[merge] = findCommitFromSHA(repo, merge)
-        parents = mergesDict[merge]
+        parents = mDict[merge]
         for parent in parents:
             print('\tFinding parent: %s' % parent)
             if parent not in cDict:
