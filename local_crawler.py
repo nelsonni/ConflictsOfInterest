@@ -62,7 +62,8 @@ def main():
         except:
             timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
             notice = "Exception received by local_crawler.py on %s." % timestamp
-            notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, notice)
+            for recipient in config_loader.get('NOTIFY'):
+                notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, notice)
 
 def log(project, str):
     ts = datetime.datetime.now().isoformat()
