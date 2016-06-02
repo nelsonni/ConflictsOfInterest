@@ -1,6 +1,7 @@
 from git import Repo
 import urllib2
 import json
+import config_loader
 
 repoData = urllib2.urlopen('https://api.github.com/search/repositories?q=stars:>1&sort=stars&order=desc').read()
 jsonData = json.loads(repoData)
@@ -13,7 +14,7 @@ for each in jsonData['items']:
         repos.append( (each['name'], each['html_url']) )
 
 for idx,r in enumerate(repos):
-    print("%d - url: %s, folder: /Users/nelsonni/Downloads/%s" % (idx + 1, r[1], r[0]))
+    print("%d - url: %s, folder: %s%s" % (idx + 1, r[1], config_loader.get('DOWNLOAD_PATH'), r[0]))
     url = r[1]
-    path = "/Users/Shane/Downloads/" + r[0]
+    path = config_loader.get('DOWNLOAD_PATH') + r[0]
     Repo.clone_from(url, path)
