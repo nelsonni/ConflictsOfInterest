@@ -154,9 +154,7 @@ def getConflictSet(repo, filename):
         return []
     if len(content.split('=======')) > 2:
         print "MORE WEIRDNESS!: more than one conflict for %s" % path
-        s = content.split('=======')
-        left = s[0]
-        right = s[1]
+        return []
     else: 
         (left, right) = content.split('=======')
     leftSHA = left.splitlines()[0].split(' ')[-1]
