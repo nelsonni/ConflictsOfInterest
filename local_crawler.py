@@ -8,12 +8,13 @@ import os
 from subprocess import Popen, PIPE
 import pattern_classifier as classifier
 import puller
-import datetime
+from datetime import datetime
+import time
 import notifier
 
 REPO_PATH = config_loader.get('REPO_PATH')
 EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" # Git has a well-known, or at least sort-of-well-known, empty tree with this SHA1
-DEBUG = True
+DEBUG = False
 
 def main():
     if DEBUG:
@@ -58,9 +59,9 @@ def main():
                             print "WARNING: list index out of range, skipping"
                             continue
                         log(project, classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit)))
-        except exception:
+        except:
             timestamp = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-            notice = "Exception received by local_crawler.py on %s.\n\nException: %s" % (timestamp, exception)
+            notice = "Exception received by local_crawler.py on %s." % timestamp
             notifier.send_notice(config_loader.get('GMAIL_AUTH')['username'], config_loader.get('GMAIL_AUTH')['password'], "CS566_FinalProject failure detected", recipient, notice)
 
 def log(project, str):
