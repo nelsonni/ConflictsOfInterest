@@ -15,13 +15,14 @@ def main():
 
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
-
     for i,commitHash in enumerate(mergesDict):
         # print("%d: %s" % (i,commitHash))
         commit = commitsDict[commitHash]
         print commit
-        print does_merge_have_conflict(repo, list(commit.parents))
         parent1SHA, parent2SHA = mergesDict[commitHash]
+        if len(findConflicts(repo, list(commit.parents))) > 0:
+            print "conflicts are multiplying"
+            #getDiff(commitsDict[parent1SHA], commitsDict[parent2SHA])
 
 # determine the programming language most used in a repository
 def getLang(repo):
@@ -39,88 +40,144 @@ def getLang(repo):
     jsonData = json.loads(rawData)
     return max(jsonData, key=jsonData.get)
 
-def diffDat(repo, mergesDict, lookupDict):
-    import random
-    a = git.repo.to_commit(random.choice(lookupDict.keys()))
-    b = random.choice(lookupDict.keys())
-    print("type(a): %s, type(b): %s" % (type(a), type(b)))
-    print("lookupDict: %s" % type(lookupDict.keys()))
-    #print Diffable.diff(a, b)
-
 # returns text of 
 def getDiff(commit1, commit2):
-    pass
+    diff = commit1.diff(commit2)
+    added_changes = diff.iter_change_type('A')
+    modified_changes = diff.iter_change_type('M')
+    print("added_changes:",added_changes)
+    print("modified_changes:",modified_changes)
+
+    sections = get_diff_sections(commit1, commit2)
+    for i,s in enumerate(sections):
+        print("section %d:" % i)
+        print("first_line: %s" % s['first_line'])
+        print("lines_before: %s" % s['lines_before'])
+        print("lines_after: %s" % s['lines_after'])
+        print("start_index: %s" % s['start_index'])
+        for l in s['lines']:
+            print("%s" % l.rstrip())
+
+    for x in commit1.diff(commit2):
+        if x.a_blob is not None:
+            print "a_blob:",x.a_blob.path
+            # print "inspection(a_blob):",
+            # for m in inspect.getmembers(x.a_blob):
+            #     print m
+        else:
+            print "a_blob:",x.a_blob
+        if x.b_blob is not None:
+            print "b_blob:",x.b_blob.path
+        else:
+            print "b_blob:",x.b_blob
+
+def get_diff_sections(current, previous):
+        word_diff = {"word-diff":"porcelain"}
+        diff = previous.diff(current.hexsha, create_patch=True, **word_diff)[0].diff
+        diff_lines = diff.splitlines()[2:]
+        sections = []
+        previous_i = 0
+        for i, line in enumerate(diff_lines):
+            if line.startswith('@'):
+                section_info = line.split(' ')
+                section_before = section_info[1].split(',')
+                section_after = section_info[2].split(',')
+
+                num_lines_before = 0 if len(section_before) == 1 else section_before[1]
+                num_lines_after = 0 if len(section_after) == 1 else section_after[1]
+                first_line = max(0, int(section_after[0][1:]))
+                sections.append({'first_line': first_line, 'lines_before': num_lines_before, 'lines_after': num_lines_after, 'start_index': i + 1})
+                previous_i = i
+            if line.startswith('~'):
+                diff_lines[i] = " \n"
+        # Set the lines for each section
+        # THIS IS THE ONLY WAY I COULD FIGURE OUT HOW TO DO IT
+        # I'm sorry
+        end_index = len(diff_lines)
+        for i, section in enumerate(reversed(sections)):
+            sections[-1-i]['lines'] = diff_lines[section['start_index']:end_index]
+            section['lines'].pop()
+            end_index = section['start_index'] - 1
+
+        return sections
 
 def getCommit(commitsDict, SHA):
     return commitsDict[SHA]
 
-def does_merge_have_conflict(repo,commits):
-  old_wd = os.getcwd()
-  os.chdir(repo.working_dir)
+def findConflicts(repo, commits):
+    conflictSet = []
+    old_wd = os.getcwd()
+    os.chdir(repo.working_dir)
 
-  if len(commits) < 2:
-    return False
-  else:
-    try:
-      firstCommitStr = commits.pop().hexsha
+    if len(commits) < 2:
+        # not enough commits for a conflict to emerge
+        return conflictSet
+    else:
+        try:
+            firstCommitStr = commits.pop().hexsha
 
-      p = Popen(["git", "checkout", firstCommitStr], stdin=None, stdout=PIPE, stderr=PIPE)
-      out, err = p.communicate()
-      rc = p.returncode
+            p = Popen(["git", "checkout", firstCommitStr], stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
 
-      arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
-      p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
-      out, err = p.communicate()
-      rc = p.returncode
+            arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
+            p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
 
-      if "CONFLICT" in out:
-        p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-        return True
+            if "CONFLICT" in out:
+                notification_lines = [x for x in out.splitlines() if "CONFLICT" in x]
+                conflict_filenames = [x.split('Merge conflict in ')[-1] for x in notification_lines]
+                for filename in conflict_filenames:
+                    conflictSet.append(getConflictSet(repo, filename))
 
-    finally:
-      try:
-        # Completely reset the working state after performing the merge
-        p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-        p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-        p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-      finally:
-        # Set the working directory back
-        os.chdir(old_wd)
+                p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+                rc = p.returncode
+                return conflictSet
 
-# def isMergeConflict(repo, commit):
-#     repo.delete_head('commit2') 
-#     parent1, parent2 = commit.parents
-#     print('Checking if it\'s a conflict: %s' % commit.hexsha)
-#     master = repo.heads.master 
-#     master.checkout(commit.hexsha)
-#     new_branch = repo.create_head('commit2')  
-#     new_branch.commit = parent2
-#     merge_base = repo.merge_base(new_branch, master)
-#     repo.index.merge_tree(master, base=merge_base)
-#     # repo.delete_head('commit1') 
+        finally:
+            try:
+                # Completely reset the working state after performing the merge
+                p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+                rc = p.returncode
+                p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+                rc = p.returncode
+                p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
+                out, err = p.communicate()
+                rc = p.returncode
+            finally:
+                # Set the working directory back
+                os.chdir(old_wd)
 
-#     return checkMergeForConflicts(repo)
+    return conflictSet
 
+def getConflictSet(repo, filename):
+    path = repo.working_dir + '/' + filename    
+    content = open(filename, 'r').read()
+    
+    (left, right) = content.split('=======')
+    leftSHA = left.splitlines()[0].split(' ')[-1]
+    rightSHA = right.splitlines()[-1].split(' ')[-1]
+    if leftSHA == 'HEAD':
+        leftSHA = str(repo.head.commit)
+    if rightSHA == 'HEAD':
+        rightSHA = str(repo.head.commit)
+    left = ''.join(left.splitlines(True)[1:])       # remove first line
+    right = ''.join(right.splitlines(True)[:-1])    # remove last line
 
-# def checkMergeForConflicts(repo):
-#     found_a_conflict = False
-#     unmerged_blobs = repo.index.unmerged_blobs()
-#     print unmerged_blobs
+    leftDict = {}
+    leftDict['file'] = path
+    leftDict['SHA'] = leftSHA
+    leftDict['lines'] = left
+    rightDict = {}
+    rightDict['file'] = path
+    rightDict['SHA'] = rightSHA
+    rightDict['lines'] = right
 
-#     for path in unmerged_blobs:
-#       list_of_blobs = unmerged_blobs[path]
-#       for (stage, blob) in list_of_blobs:
-#         if stage != 0:
-#           found_a_conflict = True
-#     return found_a_conflict
+    return [leftDict, rightDict]
 
 # returns pattern name for classification
 def classifyResolutionPattern(versionA, versionB, finalVersion):
