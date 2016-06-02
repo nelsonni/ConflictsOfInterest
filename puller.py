@@ -9,7 +9,7 @@ def pull_repositories():
 	jsonData = json.loads(repoData)
 	repos = []
 
-	banned = ['legacy-homebrew', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome', 'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
+	banned = ['legacy-homebrew', 'meteor', 'gitignore', 'You-Dont-Know-JS', 'Font-Awesome', 'free-programming-books', 'html5-boilerplate', 'the-art-of-command-line']
 
 	for each in jsonData['items']:
 	    if each['name'] not in banned:
