@@ -109,7 +109,7 @@ def findConflicts(repo, commits):
                         conflict_filenames.append(line.split('Merge conflict in ')[-1])
                     if "deleted in " in line:
                         conflict_filenames.append(line.split(' deleted in ')[0].split(': ')[-1])
-                        
+
                 for filename in conflict_filenames:
                     conflictSet.append(getConflictSet(repo, filename))
 
@@ -140,6 +140,9 @@ def getConflictSet(repo, filename):
     path = repo.working_dir + '/' + filename    
     content = open(filename, 'r').read()
     
+    if '=======' not in content:
+        print "STRANGENESS!: look in git history of %s" % path
+        return []
     (left, right) = content.split('=======')
     leftSHA = left.splitlines()[0].split(' ')[-1]
     rightSHA = right.splitlines()[-1].split(' ')[-1]
