@@ -1,34 +1,48 @@
 from git import *
 import inspect
 import config_loader
+import data_manager
 import json, urllib2
 
 # REPO_PATH = config_loader.get('REPO_PATH')
 REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
 
 def main():
+    project = REPO_PATH.split('/')[-1]
     repo = Repo(REPO_PATH)
     repo.git.checkout("master")
 
-    # print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
-    
-    # print isMergeConflict(repo, findCommitFromSHA(repo,'1e80e4ca46e69e56d01df4626190507babc7d225'), findCommitFromSHA(repo, '8b733a2eae8072a8934c11e6607efa22a7f86b27'))
-    mergeSetDict = createMergeSetDict(repo)
-    lookupDict = createHashToMergedCommitDict(repo, mergeSetDict)
+    try:
+        mergesDict = data_manager.PersistentDict.load(open('data/'+project+'.merges.json', 'wb'))
+    except Exception:
+        mergesDict = data_manager.PersistentDict('data/'+project+'.merges.json', 'c', format='json')
+        populateMergesDict(repo, mergesDict)
 
-    for i,commitHash in enumerate(mergeSetDict):
-        # print("%d: %s" % (i,commitHash))
-        commit = lookupDict[commitHash]
-        # print commit.message
-        print isMergeConflict(repo, commit.parents[0], commit.parents[1])
-        repo.delete_head('commit1') 
-        parent1SHA, parent2SHA = mergeSetDict[commitHash]
+    try:
+        commitsDict = data_manager.PersistentDict.load(open('data/'+project+'.commits.json', 'wb'))
+    except Exception:
+        commitsDict = data_manager.PersistentDict('data/'+project+'.commits.json', 'c', format='json')
+        populateCommitsDict(repo, mergesDict, commitsDict)
+        
+    #print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
 
+    # diffDat(repo, mergesDict, lookupDict)
 
+    # for i,commitHash in enumerate(mergeSetDict):
+    #     # print("%d: %s" % (i,commitHash))
+    #     commit = lookupDict[commitHash]
+    #     # print commit.message
+    #     print isMergeConflict(repo, commit.parents[0], commit.parents[1])
+    #     repo.delete_head('commit1') 
+    #     parent1SHA, parent2SHA = mergeSetDict[commitHash]
+
+    mergesDict.sync()
+    commitsDict.sync()
+
+# determine the programming language most used in a repository
 def getLang(repo):
-# get top programming language for repository
     remote_url = repo.remotes[0].url
-
+    
     # handle SSH url, else handle HTTPS url; Warning: BLACK MAGIC!!!
     if (remote_url[-4:] == '.git'):
         owner = remote_url.split(":")[-1][:-4].split("/")[-2]
@@ -40,6 +54,14 @@ def getLang(repo):
     rawData = urllib2.urlopen('https://api.github.com/repos/' + owner + '/' + project + '/languages').read()
     jsonData = json.loads(rawData)
     return max(jsonData, key=jsonData.get)
+
+def diffDat(repo, mergesDict, lookupDict):
+    import random
+    a = git.repo.to_commit(random.choice(lookupDict.keys()))
+    b = random.choice(lookupDict.keys())
+    print("type(a): %s, type(b): %s" % (type(a), type(b)))
+    print("lookupDict: %s" % type(lookupDict.keys()))
+    #print Diffable.diff(a, b)
 
 def findAllBranches(repo):
     branchList = []
@@ -72,10 +94,10 @@ def findCommitFromSHA(repo, sha):
 
 # returns text of 
 def getDiff(commit1, commit2):
-	pass
+    pass
 
-def getCommit(commitDict, SHA):
-    return commitDict[SHA]
+def getCommit(commitsDict, SHA):
+    return commitsDict[SHA]
 
 def isMergeConflict(repo, commit1, commit2):
     master = repo.heads.master 
@@ -109,38 +131,30 @@ def getCurrentBranch(repo):
     return repo.git.rev_parse('HEAD', abbrev_ref=True)
     # git rev-parse --abbrev-ref HEAD
 
-# converts dictionary of SHAs to dictionary of commit objects filtered by merge status
-def createHashToMergedCommitDict(repo, mergeSetDict):
-    hashToCommitsDict = {}
-    for merge in mergeSetDict:
-        print('Finding commit: %s' % merge)
-        hashToCommitsDict[merge] = findCommitFromSHA(repo, merge)
-        parents = mergeSetDict[merge]
-        for parent in parents:
-            print('\tFinding parent: %s' % parent)
-            if parent not in hashToCommitsDict:
-                hashToCommitsDict[parent] = findCommitFromSHA(repo, parent)
+# populates commit SHA -> commit object dictionary for merge-related commits (parent and merge)
+def populateCommitsDict(repo, mergesDict, commitsDict):
+    print("Populating commitsDict for %s..." % repo.active_branch)
+    commits = list(repo.iter_commits("master"))
+    for commit in commits:
+        commitSHA = str(commit.hexsha)
+        
+        if commitSHA in mergesDict:
+            commitsDict[commitSHA] = commit
+        else:
+            for parents in mergesDict.values():
+                if commitSHA in parents:
+                     commitsDict[commitSHA] = commit
 
-    return hashToCommitsDict
-
-# This identifies merges in the same way that Git's rev-list command does
-def createMergeSetDict(repo):
-    print('creating MergeSetDict')
-    mergeSetDict = {}
-    # git rev-list --merges --all
+# populates merge SHA -> parent SHA dictionary, similar to 'git rev-list --merges --all' command
+def populateMergesDict(repo, mergesDict):
+    print("Populating mergesDict for %s..." % repo.active_branch)
     commitSHAs = repo.git.rev_list(merges=True, all=True)
     commitSHAsList = commitSHAs.split('\n')
-
     for commitSHA in commitSHAsList:
-    	parentsString = repo.git.rev_list(commitSHA, parents=True)
+        parentsString = repo.git.rev_list(commitSHA, parents=True)
         relevantLine = parentsString.split('\n')[0]
         parents = relevantLine.split(' ')[1:]
-
-        mergeSetDict[str(commitSHA)] = [str(x) for x in parents]
-
-    print('MergeSetDict done')
-
-    return mergeSetDict
+        mergesDict[str(commitSHA)] = [str(x) for x in parents]
 
 if __name__ == "__main__":
     main()

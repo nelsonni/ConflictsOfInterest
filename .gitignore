@@ -1,3 +1,5 @@
-# store authentication information
-config.json
+# data storage and path configs
+data/
+
+# Python build files
 *.pyc
