@@ -65,7 +65,7 @@ def main():
 
 def log(project, str):
     ts = datetime.datetime.now().isoformat()
-    f = open(project+'.'+ts+'.log', 'a+')
+    f = open('data/'+project+'.'+ts+'.log', 'a+')
     f.write(str)
     f.close()
 
