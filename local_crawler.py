@@ -1,4 +1,5 @@
 from git import *
+from git.compat import defenc
 import inspect
 import config_loader
 import data_manager
@@ -9,7 +10,8 @@ import pattern_classifier as classifier
 import puller
 
 REPO_PATH = config_loader.get('REPO_PATH')
-DEBUG = False
+EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" # Git has a well-known, or at least sort-of-well-known, empty tree with this SHA1
+DEBUG = True
 
 def main():
     if DEBUG:
@@ -21,6 +23,7 @@ def main():
         for i,commitHash in enumerate(mergesDict):
             commit = commitsDict[commitHash]
             print commit
+            print getDiff(commit)
             parent1SHA, parent2SHA = mergesDict[commitHash]
             if len(findConflicts(repo, list(commit.parents))) > 0:
                 print "conflicts are multiplying"
@@ -41,7 +44,21 @@ def main():
                 parent1SHA, parent2SHA = mergesDict[commitHash]
                 if len(findConflicts(repo, list(commit.parents))) > 0:
                     print "conflicts are multiplying"
-                    #getDiff(commitsDict[parent1SHA], commitsDict[parent2SHA])
+
+def getDiff(commit):
+    msg = ""
+    if not commit.parents:
+        diff = commit.diff(EMPTY_TREE_SHA, create_patch=True)
+    else:
+        diff = commit.diff(commit.parents[0], create_patch=True)
+
+    for k in diff:
+        try:
+            msg = k.diff.decode(defenc)
+        except UnicodeDecodeError:
+            continue
+    additions = ''.join([x[1:] for x in msg.splitlines() if x.startswith('+')])
+    return additions
 
 # determine the programming language most used in a repository
 def getLang(repo):
@@ -58,67 +75,6 @@ def getLang(repo):
     rawData = urllib2.urlopen('https://api.github.com/repos/' + owner + '/' + project + '/languages').read()
     jsonData = json.loads(rawData)
     return max(jsonData, key=jsonData.get)
-
-# returns text of 
-def getDiff(commit1, commit2):
-    diff = commit1.diff(commit2)
-    added_changes = diff.iter_change_type('A')
-    modified_changes = diff.iter_change_type('M')
-    print("added_changes:",added_changes)
-    print("modified_changes:",modified_changes)
-
-    sections = get_diff_sections(commit1, commit2)
-    for i,s in enumerate(sections):
-        print("section %d:" % i)
-        print("first_line: %s" % s['first_line'])
-        print("lines_before: %s" % s['lines_before'])
-        print("lines_after: %s" % s['lines_after'])
-        print("start_index: %s" % s['start_index'])
-        for l in s['lines']:
-            print("%s" % l.rstrip())
-
-    for x in commit1.diff(commit2):
-        if x.a_blob is not None:
-            print "a_blob:",x.a_blob.path
-            # print "inspection(a_blob):",
-            # for m in inspect.getmembers(x.a_blob):
-            #     print m
-        else:
-            print "a_blob:",x.a_blob
-        if x.b_blob is not None:
-            print "b_blob:",x.b_blob.path
-        else:
-            print "b_blob:",x.b_blob
-
-def get_diff_sections(current, previous):
-        word_diff = {"word-diff":"porcelain"}
-        diff = previous.diff(current.hexsha, create_patch=True, **word_diff)[0].diff
-        diff_lines = diff.splitlines()[2:]
-        sections = []
-        previous_i = 0
-        for i, line in enumerate(diff_lines):
-            if line.startswith('@'):
-                section_info = line.split(' ')
-                section_before = section_info[1].split(',')
-                section_after = section_info[2].split(',')
-
-                num_lines_before = 0 if len(section_before) == 1 else section_before[1]
-                num_lines_after = 0 if len(section_after) == 1 else section_after[1]
-                first_line = max(0, int(section_after[0][1:]))
-                sections.append({'first_line': first_line, 'lines_before': num_lines_before, 'lines_after': num_lines_after, 'start_index': i + 1})
-                previous_i = i
-            if line.startswith('~'):
-                diff_lines[i] = " \n"
-        # Set the lines for each section
-        # THIS IS THE ONLY WAY I COULD FIGURE OUT HOW TO DO IT
-        # I'm sorry
-        end_index = len(diff_lines)
-        for i, section in enumerate(reversed(sections)):
-            sections[-1-i]['lines'] = diff_lines[section['start_index']:end_index]
-            section['lines'].pop()
-            end_index = section['start_index'] - 1
-
-        return sections
 
 def getCommit(commitsDict, SHA):
     return commitsDict[SHA]
