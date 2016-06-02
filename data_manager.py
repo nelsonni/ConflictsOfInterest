@@ -71,19 +71,3 @@ class PersistentDict(dict):
             except Exception:
                 pass
         raise ValueError('File not in a supported format')
-
-
-
-# if __name__ == '__main__':
-#     import random
-
-#     # Make and use a persistent dictionary
-#     with PersistentDict('/tmp/demo.json', 'c', format='json') as d:
-#         print(d, 'start')
-#         d['abc'] = '123'
-#         d['rand'] = random.randrange(10000)
-#         print(d, 'updated')
-
-#     # Show what the file looks like on disk
-#     with open('/tmp/demo.json', 'rb') as f:
-#         print(f.read())
