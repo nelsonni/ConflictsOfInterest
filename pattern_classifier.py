@@ -173,6 +173,7 @@ def is_interweaving_augmented(versionA, versionB, mergeVersion):
 def removeWhitespaceLines(lines):
     rtnString = ""
     for line in lines:
+        line = str(line)
         if line.strip(' \t\n\r') != "":
             rtnString += line
     return rtnString
