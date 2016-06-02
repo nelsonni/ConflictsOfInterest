@@ -1,96 +1,178 @@
 # returns pattern name for classification
 def classifyResolutionPattern(versionA, versionB, mergeVersion):
-    if authorA == authorB:
-    	print("The author conflicted with themselves.") 
-    elif authorA != authorC and authorB != authorC:
-    	print("The merger is different from both authors: %s, %s, %s" % (authorA, authorB, authorC))
-    elif authorA == authorB and authorB == authorC:
-    	print("Author A == author B == author C")
 
-    isDis = is_disregard(versionA, authorA, versionB, authorB, mergeVersion, mergeAuthor)
-    isAug = is_augmentation(versionA, authorA, versionB, authorB, mergeVersion, mergeAuthor)
-    isNuke = is_nuclear(versionA, authorA, versionB, authorB, mergeVersion, mergeAuthor)
-    isInter = is_interweaving(versionA, authorA, versionB, authorB, mergeVersion, mergeAuthor)
+    versionA = removeWhitespaceLines(versionA)
+    versionB = removeWhitespaceLines(versionB)
+    mergeVersion = removeWhitespaceLines(mergeVersion)
 
-    if sum([isDis, isAug, isNuke, isInter]) > 1:
-    	raise TooManyPatternsError("There are too many damn patterns in this damn commit")
+    isTakeOne = is_take_one(versionA, versionB, mergeVersion)
+    isTakeOneAug = is_take_one_augmentation(versionA, versionB, mergeVersion)
+    isDis = is_disregard(versionA, versionB, mergeVersion)
+    isAug = is_augmentation(versionA, versionB, mergeVersion)
+    isInter = is_interweaving(versionA, versionB, mergeVersion)
+    isInterAug = is_interweaving_augmented(versionA, versionB, mergeVersion)
 
+    if sum([isTakeOne, isTakeOneAug, isDis, isAug, isInter, isInterAug]) > 1:
+        raise TooManyPatternsError("There are too many damn patterns in this damn commit")
+
+    if isTakeOne:
+        return "TakeOne"
+    elif isTakeOneAug:
+        return "TakeOneAug"
     elif isDis:
-    	return "Disregard"
+        return "Disregard"
     elif isAug:
-    	return "Augmentation"
-    elif isNuke:
-    	return "NUCLEAR"
-    elif isInter and not isAug: # Augmentation contains interweaving. This is easier than checking for extra stuff
-    	return "Interweaving"
+        return "Augmentation"
+    elif isInter:
+        return "Interweaving"
+    elif isInterAug:
+        return "InterweavingAug"
     else:
-    	raise NoPatternError("Couldn't find a conflict resolution pattern")
+        return "Other"
 
 
-def is_disregard(versionA, versionB, mergeVersion):
+def is_take_one(versionA, versionB, mergeVersion):
 
-	linesA = len(versionA.split('\n'))
-	linesAInMerge = 0
-	for line in versionA.split('\n'):
-		line = line.strip(' \t\n\r')
-		if line in mergeVersion.split('\n'):
-			linesAInMerge += 1
+    linesA = len(versionA.split('\n'))
+    linesAInMerge = 0
+    for line in versionA.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesAInMerge += 1
 
-	percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
+    percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
 
-	linesB = len(versionB.split('\n'))
-	linesBInMerge = 0
-	for line in versionB.split('\n'):
-		line = line.strip(' \t\n\r')
-		print line
-		if line in mergeVersion.split('\n'):
-			print line
-			linesBInMerge += 1
+    linesB = len(versionB.split('\n'))
+    linesBInMerge = 0
+    for line in versionB.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesBInMerge += 1
 
-	percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
+    percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
-	print percentLinesAInMerge
-	print percentLinesBInMerge
+    if percentLinesBInMerge > 90 and percentLinesAInMerge < 10:
+        return True
+    if percentLinesAInMerge > 90 and percentLinesBInMerge < 10:
+        return True
 
-	if percentLinesBInMerge > 90 and percentLinesAInMerge < 10:
-		return True
-	if percentLinesAInMerge > 90 and percentLinesBInMerge < 10:
-		return True
-
-	return False
+    return False
 
 def is_interweaving(versionA, versionB, mergeVersion):
-	linesA = len(versionA.split('\n'))
-	linesAInMerge = 0
-	for line in versionA.split('\n'):
-		line = line.strip(' \t\n\r')
-		if line in mergeVersion.split('\n'):
-			linesAInMerge += 1
+    linesA = len(versionA.split('\n'))
+    linesAInMerge = 0
+    for line in versionA.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesAInMerge += 1
 
-	percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
+    percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
 
-	linesB = len(versionB.split('\n'))
-	linesBInMerge = 0
-	for line in versionB.split('\n'):
-		line = line.strip(' \t\n\r')
-		print line
-		if line in mergeVersion.split('\n'):
-			print line
-			linesBInMerge += 1
+    linesB = len(versionB.split('\n'))
+    linesBInMerge = 0
+    for line in versionB.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
 
-	percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
+            linesBInMerge += 1
 
-	print percentLinesAInMerge
-	print percentLinesBInMerge
+    percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
-	if percentLinesBInMerge > 90 and percentLinesAInMerge < 90:
-		return True
+    if percentLinesBInMerge > 90 and percentLinesAInMerge > 90:
+        return True
 
-	return False
+    return False
+
+def is_disregard(versionA, versionB, mergeVersion):
+    if len(mergeVersion) == 0:
+        return True
+    else:
+        return False
 
 def is_augmentation(versionA, versionB, mergeVersion):
-	if not is_interweaving(versionA, versionB, mergeVersion):
-		return False
+    if is_disregard(versionA, versionB, mergeVersion):
+        return False
 
-def is_nuclear(versionA, versionB, mergeVersion):
-	return False
+    linesA = len(versionA.split('\n'))
+    linesAInMerge = 0
+    for line in versionA.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesAInMerge += 1
+
+    percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
+
+    linesB = len(versionB.split('\n'))
+    linesBInMerge = 0
+    for line in versionB.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+
+            linesBInMerge += 1
+
+    percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
+
+    if percentLinesBInMerge == 0 and percentLinesAInMerge == 0:
+        return True
+
+    return False
+
+def is_take_one_augmentation(versionA, versionB, mergeVersion):
+    linesA = len(versionA.split('\n'))
+    linesAInMerge = 0
+    for line in versionA.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesAInMerge += 1
+
+    percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
+
+    linesB = len(versionB.split('\n'))
+    linesBInMerge = 0
+    for line in versionB.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesBInMerge += 1
+
+    percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
+
+    if (linesAInMerge + linesBInMerge) < len(mergeVersion.split('\n')):
+        if percentLinesBInMerge > 90 and percentLinesAInMerge < 10:
+            return True
+        if percentLinesAInMerge > 90 and percentLinesBInMerge < 10:
+            return True
+
+    return False
+
+def is_interweaving_augmented(versionA, versionB, mergeVersion):
+    linesA = len(versionA.split('\n'))
+    linesAInMerge = 0
+    for line in versionA.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+            linesAInMerge += 1
+
+    percentLinesAInMerge = (float(linesAInMerge)/linesA)*100
+
+    linesB = len(versionB.split('\n'))
+    linesBInMerge = 0
+    for line in versionB.split('\n'):
+        line = line.strip(' \t\n\r')
+        if line in mergeVersion.split('\n'):
+
+            linesBInMerge += 1
+
+    percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
+
+    if (linesAInMerge + linesBInMerge) < len(mergeVersion.split('\n')):
+        if percentLinesBInMerge > 90 and percentLinesAInMerge < 90:
+            return True
+
+    return False
+
+def removeWhitespaceLines(lines):
+    rtnString = ""
+    for line in lines:
+        if line.strip(' \t\n\r') != "":
+            rtnString += line
+    return rtnString

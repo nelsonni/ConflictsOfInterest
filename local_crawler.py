@@ -10,24 +10,24 @@ import pattern_classifier as classifier
 REPO_PATH = config_loader.get('REPO_PATH')
 
 def main():
-  a = "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii"
-  b = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz"
-  m = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\naaa"
-  print classifier.is_disregard(a, b, m)
-    # project = REPO_PATH.split('/')[-1]
-    # repo = Repo(REPO_PATH)
-    # repo.git.checkout("master")
+  # a = "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii"
+  # b = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz"
+  # m = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\n"
+  # print classifier.classifyResolutionPattern(a, b, m)
+  project = REPO_PATH.split('/')[-1]
+  repo = Repo(REPO_PATH)
+  repo.git.checkout("master")
 
-    # mergesDict, commitsDict = data_manager.loadDictionaries(repo)
+  mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
-    for i,commitHash in enumerate(mergesDict):
-        # print("%d: %s" % (i,commitHash))
-        commit = commitsDict[commitHash]
-        print commit
-        parent1SHA, parent2SHA = mergesDict[commitHash]
-        if len(findConflicts(repo, list(commit.parents))) > 0:
-            print "conflicts are multiplying"
-            #getDiff(commitsDict[parent1SHA], commitsDict[parent2SHA])
+  for i,commitHash in enumerate(mergesDict):
+      # print("%d: %s" % (i,commitHash))
+      commit = commitsDict[commitHash]
+      print commit
+      parent1SHA, parent2SHA = mergesDict[commitHash]
+      if len(findConflicts(repo, list(commit.parents))) > 0:
+          print "conflicts are multiplying"
+          #getDiff(commitsDict[parent1SHA], commitsDict[parent2SHA])
 
 # determine the programming language most used in a repository
 def getLang(repo):
