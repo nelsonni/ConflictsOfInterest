@@ -23,10 +23,11 @@ def main():
         for i,commitHash in enumerate(mergesDict):
             commit = commitsDict[commitHash]
             print commit
-            print getDiff(commit)
+            #print getDiff(commit)
             parent1SHA, parent2SHA = mergesDict[commitHash]
-            if len(findConflicts(repo, list(commit.parents))) > 0:
-                print "conflicts are multiplying"
+            conflicts = findConflicts(repo, list(commit.parents))
+            for file in conflicts:
+                print classifier.classifyResolutionPattern(file[0]['lines'], file[1]['lines'], getDiff(commit))
     else:
         puller.pull_repositories()
         download_dir = config_loader.get('DOWNLOAD_PATH')
@@ -102,7 +103,13 @@ def findConflicts(repo, commits):
 
             if "CONFLICT" in out:
                 notification_lines = [x for x in out.splitlines() if "CONFLICT" in x]
-                conflict_filenames = [x.split('Merge conflict in ')[-1] for x in notification_lines]
+                conflict_filenames = []
+                for line in notification_lines:
+                    if "Merge conflict in " in line:
+                        conflict_filenames.append(line.split('Merge conflict in ')[-1])
+                    if "deleted in " in line:
+                        conflict_filenames.append(line.split(' deleted in ')[0].split(': ')[-1])
+                        
                 for filename in conflict_filenames:
                     conflictSet.append(getConflictSet(repo, filename))
 
