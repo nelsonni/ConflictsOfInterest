@@ -4,8 +4,7 @@ import config_loader
 import data_manager
 import json, urllib2
 
-# REPO_PATH = config_loader.get('REPO_PATH')
-REPO_PATH = "/Users/Shane/Dropbox/ScubaSteveMath"
+REPO_PATH = config_loader.get('REPO_PATH')
 
 def main():
     project = REPO_PATH.split('/')[-1]
@@ -24,17 +23,13 @@ def main():
         commitsDict = data_manager.PersistentDict('data/'+project+'.commits.json', 'c', format='json')
         populateCommitsDict(repo, mergesDict, commitsDict)
         
-    #print findCommitFromSHA(repo, "e4e443c906538663d16182f1b8fb41d96f229a70")
 
-    # diffDat(repo, mergesDict, lookupDict)
-
-    # for i,commitHash in enumerate(mergeSetDict):
-    #     # print("%d: %s" % (i,commitHash))
-    #     commit = lookupDict[commitHash]
-    #     # print commit.message
-    #     print isMergeConflict(repo, commit.parents[0], commit.parents[1])
-    #     repo.delete_head('commit1') 
-    #     parent1SHA, parent2SHA = mergeSetDict[commitHash]
+    for i,commitHash in enumerate(mergeSetDict):
+        # print("%d: %s" % (i,commitHash))
+        commit = lookupDict[commitHash]
+        # print commit.message
+        print does_merge_have_conflict(repo, commit.parents)
+        parent1SHA, parent2SHA = mergeSetDict[commitHash]
 
     mergesDict.sync()
     commitsDict.sync()
@@ -99,28 +94,73 @@ def getDiff(commit1, commit2):
 def getCommit(commitsDict, SHA):
     return commitsDict[SHA]
 
-def isMergeConflict(repo, commit1, commit2):
-    master = repo.heads.master 
-    new_branch = repo.create_head('commit1')  
-    new_branch.commit = commit1
-    merge_base = repo.merge_base(new_branch, master)
-    repo.index.merge_tree(master, base=merge_base)
-    # repo.delete_head('commit1') 
+def does_merge_have_conflict(commits, repo):
+  old_wd = os.getcwd()
+  os.chdir(repo.working_dir)
 
-    return checkMergeForConflicts(repo)
+  if len(commits) < 2:
+    return False
+  else:
+    try:
+      firstCommitStr = commits.pop().hexsha
+
+      p = Popen(["git", "checkout", firstCommitStr], stdin=None, stdout=PIPE, stderr=PIPE)
+      out, err = p.communicate()
+      rc = p.returncode
+
+      arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
+      p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
+      out, err = p.communicate()
+      rc = p.returncode
+
+      if "CONFLICT" in out:
+        p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+        return True
+
+    finally:
+      try:
+        # Completely reset the working state after performing the merge
+        p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+        p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+        p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+      finally:
+        # Set the working directory back
+        os.chdir(old_wd)
+
+# def isMergeConflict(repo, commit):
+#     repo.delete_head('commit2') 
+#     parent1, parent2 = commit.parents
+#     print('Checking if it\'s a conflict: %s' % commit.hexsha)
+#     master = repo.heads.master 
+#     master.checkout(commit.hexsha)
+#     new_branch = repo.create_head('commit2')  
+#     new_branch.commit = parent2
+#     merge_base = repo.merge_base(new_branch, master)
+#     repo.index.merge_tree(master, base=merge_base)
+#     # repo.delete_head('commit1') 
+
+#     return checkMergeForConflicts(repo)
 
 
-def checkMergeForConflicts(repo):
-    found_a_conflict = False
-    unmerged_blobs = repo.index.unmerged_blobs()
-    print unmerged_blobs
+# def checkMergeForConflicts(repo):
+#     found_a_conflict = False
+#     unmerged_blobs = repo.index.unmerged_blobs()
+#     print unmerged_blobs
 
-    for path in unmerged_blobs:
-      list_of_blobs = unmerged_blobs[path]
-      for (stage, blob) in list_of_blobs:
-        if stage != 0:
-          found_a_conflict = True
-    return found_a_conflict
+#     for path in unmerged_blobs:
+#       list_of_blobs = unmerged_blobs[path]
+#       for (stage, blob) in list_of_blobs:
+#         if stage != 0:
+#           found_a_conflict = True
+#     return found_a_conflict
 
 # returns pattern name for classification
 def classifyResolutionPattern(versionA, versionB, finalVersion):
@@ -134,16 +174,18 @@ def getCurrentBranch(repo):
 # populates commit SHA -> commit object dictionary for merge-related commits (parent and merge)
 def populateCommitsDict(repo, mergesDict, commitsDict):
     print("Populating commitsDict for %s..." % repo.active_branch)
-    commits = list(repo.iter_commits("master"))
-    for commit in commits:
-        commitSHA = str(commit.hexsha)
-        
-        if commitSHA in mergesDict:
-            commitsDict[commitSHA] = commit
-        else:
-            for parents in mergesDict.values():
-                if commitSHA in parents:
-                     commitsDict[commitSHA] = commit
+    hashToCommitsDict = {}
+    for merge in mergesDict:
+        print('Finding commit: %s' % merge)
+        hashToCommitsDict[merge] = findCommitFromSHA(repo, merge)
+        parents = mergesDict[merge]
+        for parent in parents:
+            print('\tFinding parent: %s' % parent)
+            if parent not in hashToCommitsDict:
+                hashToCommitsDict[parent] = findCommitFromSHA(repo, parent)
+
+    return hashToCommitsDict
+
 
 # populates merge SHA -> parent SHA dictionary, similar to 'git rev-list --merges --all' command
 def populateMergesDict(repo, mergesDict):
