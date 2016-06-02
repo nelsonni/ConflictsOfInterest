@@ -5,15 +5,20 @@ import data_manager
 import json, urllib2
 import os
 from subprocess import Popen, PIPE
+import pattern_classifier as classifier
 
 REPO_PATH = config_loader.get('REPO_PATH')
 
 def main():
-    project = REPO_PATH.split('/')[-1]
-    repo = Repo(REPO_PATH)
-    repo.git.checkout("master")
+  a = "aaa\nbbb\nccc\nddd\neee\nfff\nggg\nhhh\niii"
+  b = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz"
+  m = "jjj\nkkk\nlll\nmmm\nnnn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\naaa"
+  print classifier.is_disregard(a, b, m)
+    # project = REPO_PATH.split('/')[-1]
+    # repo = Repo(REPO_PATH)
+    # repo.git.checkout("master")
 
-    mergesDict, commitsDict = data_manager.loadDictionaries(repo)
+    # mergesDict, commitsDict = data_manager.loadDictionaries(repo)
 
     for i,commitHash in enumerate(mergesDict):
         # print("%d: %s" % (i,commitHash))
@@ -178,10 +183,6 @@ def getConflictSet(repo, filename):
     rightDict['lines'] = right
 
     return [leftDict, rightDict]
-
-# returns pattern name for classification
-def classifyResolutionPattern(versionA, versionB, finalVersion):
-    pass
 
 # returns name of current branch
 def getCurrentBranch(repo):
