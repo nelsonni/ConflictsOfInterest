@@ -3,3 +3,6 @@ data/
 
 # Python build files
 *.pyc
+
+# Mac local storage
+.DS_Store
