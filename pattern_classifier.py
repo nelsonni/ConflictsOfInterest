@@ -12,8 +12,8 @@ def classifyResolutionPattern(versionA, versionB, mergeVersion):
     isInter = is_interweaving(versionA, versionB, mergeVersion)
     isInterAug = is_interweaving_augmented(versionA, versionB, mergeVersion)
 
-    if sum([isTakeOne, isTakeOneAug, isDis, isAug, isInter, isInterAug]) > 1:
-        raise TooManyPatternsError("There are too many damn patterns in this damn commit")
+    # if sum([isTakeOne, isTakeOneAug, isDis, isAug, isInter, isInterAug]) > 1:
+    #     raise TooManyPatternsError("There are too many damn patterns in this damn commit")
 
     if isTakeOne:
         return "TakeOne"

@@ -68,7 +68,7 @@ def main():
             raise
 
 def log(project, str):
-    ts = datetime.now().isoformat()
+    ts = datetime.today()
     f = open('data/'+project+'.'+ts+'.log', 'a+')
     f.write(str)
     f.close()
