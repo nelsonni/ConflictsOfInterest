@@ -2,6 +2,7 @@ from git import Repo
 import urllib2
 import json
 import config_loader
+import os
 
 def pull_repositories():
 	repoData = urllib2.urlopen('https://api.github.com/search/repositories?q=stars:>1&sort=stars&order=desc').read()
@@ -18,4 +19,7 @@ def pull_repositories():
 	    print("%d - url: %s, folder: %s%s" % (idx + 1, r[1], config_loader.get('DOWNLOAD_PATH'), r[0]))
 	    url = r[1]
 	    path = config_loader.get('DOWNLOAD_PATH') + r[0]
-	    Repo.clone_from(url, path)
+	    if os.path.isdir(path) and os.path.exists(path):
+	    	continue
+	    else:
+	    	Repo.clone_from(url, path)
