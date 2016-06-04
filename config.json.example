@@ -1,0 +1,9 @@
+{
+    "GITHUB_AUTH":      {"username": "blank",
+                         "password": "blank"},
+    "GMAIL_AUTH":       {"username": "blank",
+                         "password": "blank"},
+    "NOTIFY":           ["addr1", "addr2", "addr3"],
+    "SLEEP_TIME_SEC":   "3600",
+    "REPO_PATH":        "path_to_toplevel_dir_of_git_projects"
+}

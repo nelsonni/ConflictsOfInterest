@@ -1,5 +1,8 @@
-# data storage and path configs
+# data storage
 data/
+
+# local paths and configurations
+config.json
 
 # Python build files
 *.pyc
