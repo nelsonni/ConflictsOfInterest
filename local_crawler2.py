@@ -42,12 +42,6 @@ def execute(repo):
     repo.git.checkout("master")
     print("Off to the mining races on %s..." % PROJECT)
 
-def log(project, str):
-    ts = datetime.today().strftime('%Y-%m-%d')
-    f = open('data/'+project+'.'+ts+'.log', 'a+')
-    f.write(str + "\n")
-    f.close()
-
 def log(message):
     ts = timestamp()
     print("%s: %s" % (ts, message))
