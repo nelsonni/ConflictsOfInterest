@@ -36,22 +36,24 @@ def repopulateCommitsDict(repo, bDict, cDict):
     return cDict
 
 
-def findCommitFromSHA(repo, sha):
-    repo.git.checkout("master")
-    commits = list(repo.iter_commits("master"))
+def findCommitFromSHA(repo, sha, priorityBranches=[]):
+    for branchName in union(['origin/master'] + priorityBranches, findAllBranches(repo)):
+        commit = findCommitInBranch(repo, sha, branchName)
+        if commit != None:
+            return branchName, commit
+        else:
+            print("Not found in %s" % branchName)
+
+    return None, None
+
+def findCommitInBranch(repo, sha, branchName):
+    repo.git.checkout(branchName)
+    commits = list(repo.iter_commits(branchName))
     for commit in commits:
         commitSHA = str(commit.hexsha)
         if sha == commitSHA:
+            print("Found in %s" % branchName)   
             return commit
-    print("Not found in master")
-    for branchName in findAllBranches(repo):
-        repo.git.checkout(branchName)
-        commits = list(repo.iter_commits(branchName))
-        for commit in commits:
-            commitSHA = str(commit.hexsha)
-            if sha == commitSHA:
-                return commit
-        print("Not found in %s" % branchName)    
     return None
 
 def findAllBranches(repo):
@@ -63,15 +65,34 @@ def findAllBranches(repo):
 
 # populates commit hash -> commit object dictionary
 def populateCommitsDict(repo, mDict, cDict):
+    branchesDict = {}
     if DEBUG: print("Populating commitsDict...")
     for merge in mDict:
         print('Finding commit: %s' % merge)
-        cDict[merge] = findCommitFromSHA(repo, merge)
-        parents = mDict[merge]
-        for parent in parents:
-            print('\tFinding parent: %s' % parent)
-            if parent not in cDict:
-                cDict[parent] = findCommitFromSHA(repo, parent)        
+        commonBranches = sorted(branchesDict, key=branchesDict.get)
+        commonBranches.reverse()
+        branchName, commitObj = findCommitFromSHA(repo, merge, priorityBranches=commonBranches)
+
+        if commitObj != None:
+            cDict[merge] = commitObj
+            parents = mDict[merge]
+
+            if branchName in branchesDict:
+                branchesDict[branchName] += 1
+            else:
+                branchesDict[branchName] = 1
+
+            for parent in parents:
+                print('\tFinding parent: %s' % parent)
+                if parent not in cDict:
+                    commonBranches = sorted(branchesDict, key=branchesDict.get)
+                    commonBranches.reverse()
+                    print commonBranches
+                    branchName, cDict[parent] = findCommitFromSHA(repo, parent, priorityBranches=commonBranches)
+                    if branchName in branchesDict:
+                        branchesDict[branchName] += 1
+                    else:
+                        branchesDict[branchName] = 1        
     return cDict
 
 # populates merge hash -> list of parent hashes dictionary
@@ -85,6 +106,13 @@ def populateMergesDict(repo, mDict):
         parents = relevantLine.split(' ')[1:]
         mDict[str(commitHash)] = [str(x) for x in parents]
     return mDict
+
+
+def union(a, b):
+    for each in b:
+        if each not in a:
+            a.append(each)
+    return a
 
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
