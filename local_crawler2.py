@@ -14,6 +14,7 @@ import data_manager
 import notifier
 #import inspect
 
+LOGGING = False
 NOTIFY = False
 EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" # Git has an empty tree with this SHA1
 REPO_PATH = config.get('REPO_PATH')
@@ -41,15 +42,28 @@ def execute(repo):
     repo.git.checkout("master")
     print("Off to the mining races on %s..." % PROJECT)
 
+def log(project, str):
+    ts = datetime.today().strftime('%Y-%m-%d')
+    f = open('data/'+project+'.'+ts+'.log', 'a+')
+    f.write(str + "\n")
+    f.close()
+
 def log(message):
     ts = timestamp()
     print("%s: %s" % (ts, message))
-    # TODO: output log message to <project.log> files
+    if LOGGING:
+        ds = datestamp()
+        f = open('data/'+PROJECT+'.'+ds+'.log', 'a+')
+        f.write(message + '\n')
+        f.close()
     if NOTIFY: 
         notifier.error_notice(ts, PROJECT, message, os.path.basename(__file__))
 
 def timestamp():
     return datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+
+def datestamp():
+    return datetime.today().strftime('%Y-%m-%d')
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
