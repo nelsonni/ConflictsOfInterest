@@ -102,8 +102,9 @@ def proto_merge(repo, base, commits):
     """Conduct a simulated merge of the given commit to a base branch
 
     :param base: Commit object to use for the base of the current branch prior to merge.
-    :param commit: Commit object to be applied on top of the base branch.
-    :return: String output of terminal results from the Git merge command.
+    :param commits: List of Commit objects to be applied on top of the base branch.
+    :return: String output from 'git merge', and list of conflicting areas (containing 
+        left and right) within a file.
     """
     conflict_set = []
     output = ""
