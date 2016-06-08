@@ -144,64 +144,6 @@ def proto_merge(repo, base, commit):
         
     return out
 
-
-
-
-
-
-def proto_merge(repo, base, commit):
-    """Conduct a merge of the given commit to a base branch
-
-    :param base: Commit object to use for the base of the current branch prior to merge.
-    :param commit: Commit objects to be applied on top of the base branch.
-    :return: String output from 'git merge', and list of conflicting areas (containing 
-        left and right) within a file.
-    """
-    conflict_set = []
-    output = ""
-    old_wd = os.getcwd()
-    os.chdir(repo.working_dir)
-
-    try:
-        # Checkout branch up to the base commit
-        p = Popen(["git", "checkout", base.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-
-        # Merge commit onto current branch at base commit
-        arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
-        p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-        
-        # Save output of commit
-        output = out
-        conflict_filenames = findConflictFilenames(output)
-        for filename in conflict_filenames:
-            conflict_set += getConflictSets(repo, filename)
-
-        # Abort commit in order to allow for cleaning and reset
-        p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-
-        return output, conflict_set
-    finally:
-        try:
-            # Completely reset the working state after performing the merge
-            p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
-            p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
-            p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
-        finally:
-            # Set the working directory back
-            os.chdir(old_wd)
-
 def findConflictFilenames(output):
     conflict_filenames = []
     if "CONFLICT" in output:
