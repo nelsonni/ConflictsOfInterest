@@ -82,17 +82,17 @@ def populateCommitsDict(repo, mDict, cDict):
             else:
                 branchesDict[branchName] = 1
 
-            for parent in parents:
-                print('\tFinding parent: %s' % parent)
-                if parent not in cDict:
-                    commonBranches = sorted(branchesDict, key=branchesDict.get)
-                    commonBranches.reverse()
-                    print commonBranches
-                    branchName, cDict[parent] = findCommitFromSHA(repo, parent, priorityBranches=commonBranches)
-                    if branchName in branchesDict:
-                        branchesDict[branchName] += 1
-                    else:
-                        branchesDict[branchName] = 1        
+            # for parent in parents:
+            #     print('\tFinding parent: %s' % parent)
+            #     if parent not in cDict:
+            #         commonBranches = sorted(branchesDict, key=branchesDict.get)
+            #         commonBranches.reverse()
+            #         print commonBranches
+            #         branchName, cDict[parent] = findCommitFromSHA(repo, parent, priorityBranches=commonBranches)
+            #         if branchName in branchesDict:
+            #             branchesDict[branchName] += 1
+            #         else:
+            #             branchesDict[branchName] = 1        
     return cDict
 
 # populates merge hash -> list of parent hashes dictionary
