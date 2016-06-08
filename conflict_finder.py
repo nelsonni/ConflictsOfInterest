@@ -145,40 +145,6 @@ def proto_merge(repo, base, commits):
         
         # Save output of commit
         output = out
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         conflict_filenames = findConflictFilenames(output)
         for filename in conflict_filenames:
             conflict_set += getConflictSets(repo, filename)
