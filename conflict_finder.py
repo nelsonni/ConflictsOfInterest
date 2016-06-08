@@ -61,7 +61,8 @@ def findConflicts(repo, commits):
 
 def getConflictSets(repo, filename):
     path = repo.working_dir + '/' + filename    
-    content = open(filename, 'r').read()
+    content = open(filename, 'r').readlines()
+    print("Looking at conflcit in %s" % path)
 
     isLeft = False
     isRight = False
@@ -69,8 +70,14 @@ def getConflictSets(repo, filename):
     leftLines = []
     rightLines = []
     conflictSets = []
+    leftSHA = None
+    rightSHA = None
 
     for line in content:
+        if isLeft:
+            leftLines.append(line)
+        if isRight:
+            rightLines.append(line)
         if "<<<<<<<" in line:
             isLeft = True
             leftSHA = line.split("<<<<<<<")[1].strip()
@@ -87,51 +94,14 @@ def getConflictSets(repo, filename):
             leftDict = {}
             leftDict['file'] = path
             leftDict['SHA'] = leftSHA
-            leftDict['lines'] = leftLines.join("\n")
+            leftDict['lines'] = os.linesep.join(leftLines)
 
             rightDict = {}
             rightDict['file'] = path
             rightDict['SHA'] = rightSHA
-            rightDict['lines'] = rightLines.join("\n")
+            rightDict['lines'] = os.linesep.join(rightLines)
 
             conflictSets.append([leftDict, rightDict])
 
-        if isLeft:
-            leftLines.append(line)
-        if isRight:
-            rightLines.append(line)
-    
-    # if '=======' not in content:
-    #     print "STRANGENESS!: no conflict for %s" % path
-    #     return []
-    # elif len(content.split('=======')) > 2:
-    #     print "MORE WEIRDNESS!: more than one conflict for %s" % path
-    #     return []
-    # else: 
-    #     (left, right) = content.split('=======')
-    #     print left.split("<<<<<<< ")[1]
-    #     print("================================================")
-    #     print right.split(">>>>>>>")[0]
-
-    #     import pdb; pdb.set_trace()
-    #     leftSHA = left.splitlines()[0].split(' ')[-1]
-    #     rightSHA = right.splitlines()[-1].split(' ')[-1]
-    #     if leftSHA == 'HEAD':
-    #         leftSHA = str(repo.head.commit)
-    #     if rightSHA == 'HEAD':
-    #         rightSHA = str(repo.head.commit)
-    #     left = ''.join(left.splitlines(True)[1:])       # remove first line
-    #     right = ''.join(right.splitlines(True)[:-1])    # remove last line
-
-        # leftDict = {}
-        # leftDict['file'] = path
-        # leftDict['SHA'] = leftSHA
-        # leftDict['lines'] = left
-        # rightDict = {}
-        # rightDict['file'] = path
-        # rightDict['SHA'] = rightSHA
-        # rightDict['lines'] = right
-
-        # return [leftDict, rightDict]
-        print conflictSets
-        return conflictSets
+    print conflictSets
+    return conflictSets
