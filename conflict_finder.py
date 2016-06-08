@@ -12,6 +12,28 @@ def findConflicts(repo, commits):
 
     return conflict_set
 
+def getUnresolvedMerge(repo, commit):
+    A, B = commit.parents
+    p = Popen(["git", "checkout", A.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    rc = p.returncode
+    p = Popen(["git", "branch", "-b", "VeryTemporaryBranch"], stdin=None, stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    rc = p.returncode
+
+    repo.git.checkout("VeryTemporaryBranch")
+    commit = repo.head.commit
+    proto_merge(repo, commit, [B])
+
+
+    p = Popen(["git", "branch", "-d", "VeryTemporaryBranch"], stdin=None, stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    rc = p.returncode
+
+    print(out)
+
+
+
 def getConflictSets(repo, filename):
     path = repo.working_dir + '/' + filename
     f = open(path, 'r')
