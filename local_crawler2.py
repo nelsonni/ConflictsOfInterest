@@ -52,7 +52,7 @@ def execute(repo):
     for commitHash in commitsDict:
         commit = commitsDict[commitHash]
         adds,subs = conflict_finder.getAncestorDiff(repo, commit)
-        conflicts = conflict_finder.findConflicts(repo, list(commit.parents))
+        conflicts = conflict_finder.findConflicts(repo, commit)
 
     print("Off to the mining races on %s..." % PROJECT)
 
