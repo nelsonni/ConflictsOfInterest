@@ -13,25 +13,39 @@ def findResolutions(repo, merge_commit):
     else:
         try:
             A, B = merge_commit.parents
-            p = Popen(["git", "checkout", A.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
+
+            if '4b825dc642cb6eb9a060e54bf8d69288fbee4904' in repo.git.branch():
+                repo.git.branch(["-D", "4b825dc642cb6eb9a060e54bf8d69288fbee4904"])
+
+            repo.git.checkout(A.hexsha)
+            repo.git.branch("4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+            repo.git.checkout("master")
+            repo.git.checkout(B.hexsha)
+            repo.git.checkout("4b825dc642cb6eb9a060e54bf8d69288fbee4904")
+
+            p = Popen(["git", "merge", B.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
             out, err = p.communicate()
             rc = p.returncode
 
-            p = Popen(["git", "merge", A.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
+            p = Popen(["git", "commit", "-m", "temp commit"], stdin=None, stdout=PIPE, stderr=PIPE)
             out, err = p.communicate()
             rc = p.returncode
 
+            head_commit = repo.head.commit
+            adds, subs = getDiff(head_commit, merge_commit)
 
-            p = Popen(["git", "branch -b", "4b825dc642cb6eb9a060e54bf8d69288fbee4904"], stdin=None, stdout=PIPE, stderr=PIPE)
+            p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
             out, err = p.communicate()
             rc = p.returncode
 
-            p = Popen(["git", "branch -d", "4b825dc642cb6eb9a060e54bf8d69288fbee4904"], stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
+            repo.git.checkout("master")
+            repo.git.branch(["-D", "4b825dc642cb6eb9a060e54bf8d69288fbee4904"])
+
+            return os.linesep.join(adds)
 
         finally:
             try:
+                
                 # Completely reset the working state after performing the merge
                 p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
                 out, err = p.communicate()
@@ -50,37 +64,10 @@ def findResolutions(repo, merge_commit):
     return resolutionSets
 
 
-def getResolution(repo, commit):
-    A, B = commit.parents
-    p = Popen(["git", "checkout", A.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
-    out, err = p.communicate()
-    rc = p.returncode
-    p = Popen(["git", "branch", "-b", "VeryTemporaryBranch"], stdin=None, stdout=PIPE, stderr=PIPE)
-    out, err = p.communicate()
-    rc = p.returncode
-
-    repo.git.checkout("VeryTemporaryBranch")
-    VTB_commit = repo.head.commit
-    out = proto_merge(repo, VTB_commit, B)
-    proto_commit(out)
-    VTB_head = repo.head.commit
-    adds, subs = getDiff(VTB_head, commit)
-
-    p = Popen(["git", "branch", "-d", "VeryTemporaryBranch"], stdin=None, stdout=PIPE, stderr=PIPE)
-    out, err = p.communicate()
-    rc = p.returncode
-
-    print("RESOLUTION ADDS:", adds)
-
-    return adds
 
 
 
 def getDiff(A, B):
-    # if not commit.parents:
-    #     diff = commit.diff(EMPTY_TREE_SHA, create_patch=True)
-    # else:
-    #     diff = commit.diff(commit.parents[0], create_patch=True)
 
     diff = A.diff(B, create_patch=True)
 
@@ -91,8 +78,8 @@ def getDiff(A, B):
         except UnicodeDecodeError:
             continue
 
-    additions = [x[1:] for x in msg.splitlines() if x.startswith('+')]
-    subtractions = [x[1:] for x in msg.splitlines() if x.startswith('-')]
+    additions = [str(x[1:]) for x in msg.splitlines() if x.startswith('+')]
+    subtractions = [str(x[1:]) for x in msg.splitlines() if x.startswith('-')]
     
     return additions, subtractions
 

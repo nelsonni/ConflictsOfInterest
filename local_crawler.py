@@ -29,7 +29,7 @@ def main():
         repo = Repo(project_path)
         repo.git.checkout("master")
         
-        fixer.headcheck(repo
+        fixer.headcheck(repo)
         execute(repo)
         return True
 
@@ -38,12 +38,12 @@ def main():
         log("%s on %s" % (error, project_path))
         return False
 
-    except GitCommandError:
-        log("GitCommandError: Your repo is probably in a bad state. Try:")
-        log("git fetch origin")
-        log("git reset --hard origin/master")
-        log("git clean -d -f")
-        log("git checkout master")
+    # except GitCommandError:
+    #     log("GitCommandError: Your repo is probably in a bad state. Try:")
+    #     log("git fetch origin")
+    #     log("git reset --hard origin/master")
+    #     log("git clean -d -f")
+    #     log("git checkout master")
 
     # except Exception as e:
     #     error = sys.exc_info()[0].__name__
@@ -57,6 +57,12 @@ def execute(repo):
         commit = commitsDict[commitHash]
         conflicts = conflict_finder.findConflicts(repo, commit)
         resolutions = resolution_finder.findResolutions(repo, commit)
+
+        for conflictSet in conflicts:
+             leftDict = conflictSet[0]
+             rightDict = conflictSet[1]
+
+             print classifier.classifyResolutionPattern(leftDict['lines'], rightDict['lines'], resolutions)
 
     print("Off to the mining races on %s..." % PROJECT)
 

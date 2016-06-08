@@ -19,7 +19,7 @@ def classifyResolutionPattern(A, B, M):
         classificiations.append("Augmentation")
     if isInterweaving(A, B, M):
         classificiations.append("Interweaving")
-    if isInterweavingAugmentation(A, B, M):
+    if isInterweavingAugmented(A, B, M):
         classificiations.append("InterweavingAug")
 
     return classificiations
@@ -129,7 +129,7 @@ def isTakeOneAugmentation(A, B, M):
 
     percentLinesBInMerge = (float(linesBInMerge)/linesB)*100
 
-    if (linesAInMerge + linesBInMerge) < len(mergeVersion.split('\n')):
+    if (linesAInMerge + linesBInMerge) < len(M.split('\n')):
         if percentLinesBInMerge > 80 and percentLinesAInMerge < 10:
             return True
         if percentLinesAInMerge > 80 and percentLinesBInMerge < 10:
@@ -164,5 +164,8 @@ def isInterweavingAugmented(A, B, M):
     return False
 
 def formatLines(lines):
-    lines = unicodedata.normalize('NFKD', lines).encode('ascii','ignore')
-    lines = os.linesep.join([s for s in lines.splitlines() if s])
+    if type(lines) == unicode:
+        lines = unicodedata.normalize('NFKD', lines).encode('ascii','ignore')
+        lines = os.linesep.join([s for s in lines.splitlines() if s])
+    else:
+        return lines
