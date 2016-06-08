@@ -7,13 +7,14 @@ from subprocess import Popen, PIPE
 from git import *
 from git.compat import defenc
 
+import fixer
 import config_loader as config
 import pattern_classifier as classifier
 import git_puller as puller
 import data_manager
 import conflict_finder
+import resolution_finder
 import notifier
-#import inspect
 
 LOGGING = False
 NOTIFY = False
@@ -26,6 +27,9 @@ def main():
     try:
         project_path = REPO_PATH + PROJECT
         repo = Repo(project_path)
+        repo.git.checkout("master")
+        
+        fixer.headcheck(repo
         execute(repo)
         return True
 
@@ -47,11 +51,12 @@ def main():
     #     return False
 
 def execute(repo):
-    repo.git.checkout("master")
+    
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
     for commitHash in commitsDict:
         commit = commitsDict[commitHash]
         conflicts = conflict_finder.findConflicts(repo, commit)
+        resolutions = resolution_finder.findResolutions(repo, commit)
 
     print("Off to the mining races on %s..." % PROJECT)
 

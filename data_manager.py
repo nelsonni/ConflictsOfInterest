@@ -1,13 +1,16 @@
 import pickle, json, csv, os, shutil
+import fixer
 
 DEBUG = False
 
 def loadDictionaries(repo):
     mergesDict = {}
     commitsDict = {}
+
     mergesDict = populateMergesDict(repo, mergesDict)
     commitsDict = populateCommitsDict(repo, mergesDict, commitsDict)
     
+    fixer.headcheck(repo)
     return mergesDict, commitsDict
 
 def populateCommitsDict(repo, mDict, cDict):
@@ -60,7 +63,6 @@ def repopulateCommitsDict(repo, bDict, cDict):
             if commitHash == targetSHA:
                 cDict[targetSHA] = commit
     return cDict
-
 
 def findCommitFromSHA(repo, sha, priorityBranches=[]):
     for branchName in union(['origin/master'] + priorityBranches, findAllBranches(repo)):
