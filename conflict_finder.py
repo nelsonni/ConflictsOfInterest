@@ -33,6 +33,9 @@ def getUnresolvedMerge(repo, commit):
 
 
 def getConflictSets(repo, filename):
+    """
+    Requires that the filename exist in the currently branch checked out through git.
+    """
     path = repo.working_dir + '/' + filename
     f = open(path, 'r')
     content = f.readlines()
@@ -118,11 +121,39 @@ def getDiff(A, B):
     
     return additions, subtractions
 
-def proto_merge(repo, base, commits):
-    """Conduct a simulated merge of the given commit to a base branch
+def proto_merge(repo, base, commit):
+    """Conduct a merge of the given commit to a base branch
+
+    :param base: Commit object used as the head of the branch to be merged onto.
+    :param commit: Commit objects to be applied on top of the branch head.
+    :return: String output from 'git merge' terminal command.
+    """
+    old_wd = os.getcwd()
+    os.chdir(repo.working_dir)
+
+    # Checkout branch up to the base commit
+    p = Popen(["git", "checkout", base.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    rc = p.returncode
+
+    # Merge commit onto current branch at base commit
+    arguments = ["git", "merge", commit.hexsha]
+    p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    rc = p.returncode
+        
+    return out
+
+
+
+
+
+
+def proto_merge(repo, base, commit):
+    """Conduct a merge of the given commit to a base branch
 
     :param base: Commit object to use for the base of the current branch prior to merge.
-    :param commits: List of Commit objects to be applied on top of the base branch.
+    :param commit: Commit objects to be applied on top of the base branch.
     :return: String output from 'git merge', and list of conflicting areas (containing 
         left and right) within a file.
     """
