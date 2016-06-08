@@ -51,7 +51,6 @@ def execute(repo):
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
     for commitHash in commitsDict:
         commit = commitsDict[commitHash]
-        adds,subs = conflict_finder.getAncestorDiff(repo, commit)
         conflicts = conflict_finder.findConflicts(repo, commit)
 
     print("Off to the mining races on %s..." % PROJECT)
