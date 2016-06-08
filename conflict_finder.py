@@ -30,8 +30,6 @@ def getUnresolvedMerge(repo, commit):
     out, err = p.communicate()
     rc = p.returncode
 
-    print(out)
-
 
 
 def getConflictSets(repo, filename):
@@ -147,6 +145,39 @@ def proto_merge(repo, base, commits):
         
         # Save output of commit
         output = out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         conflict_filenames = findConflictFilenames(output)
         for filename in conflict_filenames:
