@@ -74,36 +74,42 @@ def getConflictSets(repo, filename):
     rightSHA = None
 
     for line in content:
-        if isLeft:
-            leftLines.append(line)
         if isRight:
-            rightLines.append(line)
+            if ">>>>>>>" not in line:
+                rightLines.append(line)
+
+                leftDict = {}
+                leftDict['file'] = path
+                leftDict['SHA'] = leftSHA
+                leftDict['lines'] = os.linesep.join(leftLines)
+
+                rightDict = {}
+                rightDict['file'] = path
+                rightDict['SHA'] = rightSHA
+                rightDict['lines'] = os.linesep.join(rightLines)
+
+                conflictSets.append([leftDict, rightDict])
+
+            else:
+                rightSHA = line.split(">>>>>>>")[1].strip()
+                isRight = False
+                print(path)
+                print("Left: %s Right: %s" % (leftSHA, rightSHA))
+                print("Left Lines:\n %s\n\n\nRightLines:\n %s\n\n\n" % (leftDict['lines'], rightDict['lines']))
+
+        if isLeft:
+            if "=======" not in line:
+                leftLines.append(line)
+            else:
+                isRight = True
+                isLeft = False
+
         if "<<<<<<<" in line:
             isLeft = True
             leftSHA = line.split("<<<<<<<")[1].strip()
             if leftSHA == 'HEAD':
                 leftSHA = str(repo.head.commit)
 
-        elif "=======" in line:
-            isRight = True
-            isLeft = False
-        elif ">>>>>>>" in line:
-            isRight = False
-            leftSHA = line.split(">>>>>>>")[1].strip()
-
-            leftDict = {}
-            leftDict['file'] = path
-            leftDict['SHA'] = leftSHA
-            leftDict['lines'] = os.linesep.join(leftLines)
-
-            rightDict = {}
-            rightDict['file'] = path
-            rightDict['SHA'] = rightSHA
-            rightDict['lines'] = os.linesep.join(rightLines)
-
-            conflictSets.append([leftDict, rightDict])
-
-    print conflictSets
     return conflictSets
 
 def getDiff(A, B):
