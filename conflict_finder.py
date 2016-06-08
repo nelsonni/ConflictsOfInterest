@@ -1,68 +1,23 @@
 import os, sys
 from subprocess import Popen, PIPE
+from git.compat import defenc
 
 def findConflicts(repo, commits):
-    conflictSet = []
-    old_wd = os.getcwd()
-    os.chdir(repo.working_dir)
 
     if len(commits) < 2:
         # not enough commits for a conflict to emerge
         return conflictSet
     else:
-        try:
-            firstCommitStr = commits.pop().hexsha
+        output, conflict_set = proto_merge(repo, commits.pop(), commits)
 
-            p = Popen(["git", "checkout", firstCommitStr], stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
-
-            arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
-            p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
-            out, err = p.communicate()
-            rc = p.returncode
-
-            if "CONFLICT" in out:
-                notification_lines = [x for x in out.splitlines() if "CONFLICT" in x]
-                conflict_filenames = []
-                for line in notification_lines:
-                    if "Merge conflict in " in line:
-                        conflict_filenames.append(line.split('Merge conflict in ')[-1])
-                    if "deleted in " in line:
-                        conflict_filenames.append(line.split(' deleted in ')[0].split(': ')[-1])
-                    else:
-                        continue
-
-                for filename in conflict_filenames:
-                    conflictSet += getConflictSets(repo, filename)
-
-                p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
-                out, err = p.communicate()
-                rc = p.returncode
-                return conflictSet
-
-        finally:
-            try:
-                # Completely reset the working state after performing the merge
-                p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
-                out, err = p.communicate()
-                rc = p.returncode
-                p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
-                out, err = p.communicate()
-                rc = p.returncode
-                p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
-                out, err = p.communicate()
-                rc = p.returncode
-            finally:
-                # Set the working directory back
-                os.chdir(old_wd)
-
-    return conflictSet
+    return conflict_set
 
 def getConflictSets(repo, filename):
-    path = repo.working_dir + '/' + filename    
-    content = open(filename, 'r').readlines()
-    print("Looking at conflcit in %s" % path)
+    path = repo.working_dir + '/' + filename
+    f = open(path, 'r')
+    content = f.readlines()
+    f.close()
+    print("Looking at conflict in %s" % path)
 
     isLeft = False
     isRight = False
@@ -112,6 +67,17 @@ def getConflictSets(repo, filename):
 
     return conflictSets
 
+def getAncestorDiff(repo, M):
+    assert len(M.parents) >= 2
+    A = M.parents[0]
+    B = M.parents[1]
+
+    common_ancestor = repo.merge_base([A,B], [])
+    if not common_ancestor:
+        return None
+
+    return getDiff(common_ancestor[0], M)
+
 def getDiff(A, B):
     # if not commit.parents:
     #     diff = commit.diff(EMPTY_TREE_SHA, create_patch=True)
@@ -127,7 +93,74 @@ def getDiff(A, B):
         except UnicodeDecodeError:
             continue
 
-    additions = ''.join([x[1:] for x in msg.splitlines() if x.startswith('+')])
-    subtractions = ''.join([x[1:] for x in msg.splitlines() if x.startswith('-')])
+    additions = [x[1:] for x in msg.splitlines() if x.startswith('+')]
+    subtractions = [x[1:] for x in msg.splitlines() if x.startswith('-')]
     
     return additions, subtractions
+
+def proto_merge(repo, base, commits):
+    """Conduct a simulated merge of the given commit to a base branch
+
+    :param base: Commit object to use for the base of the current branch prior to merge.
+    :param commit: Commit object to be applied on top of the base branch.
+    :return: String output of terminal results from the Git merge command.
+    """
+    conflict_set = []
+    output = ""
+    old_wd = os.getcwd()
+    os.chdir(repo.working_dir)
+
+    try:
+        # Checkout branch up to the base commit
+        p = Popen(["git", "checkout", base.hexsha], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+
+        # Merge commit onto current branch at base commit
+        arguments = ["git", "merge"] + map(lambda c:c.hexsha, commits)
+        p = Popen(arguments, stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+        
+        # Save output of commit
+        output = out
+
+        conflict_filenames = findConflictFilenames(output)
+        for filename in conflict_filenames:
+            conflict_set += getConflictSets(repo, filename)
+
+        # Abort commit in order to allow for cleaning and reset
+        p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        rc = p.returncode
+
+        return output, conflict_set
+    finally:
+        try:
+            # Completely reset the working state after performing the merge
+            p = Popen(["git", "clean", "-xdf"], stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
+            p = Popen(["git", "reset", "--hard"], stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
+            p = Popen(["git", "checkout", "."], stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
+        finally:
+            # Set the working directory back
+            os.chdir(old_wd)
+
+def findConflictFilenames(output):
+    conflict_filenames = []
+    if "CONFLICT" in output:
+        notification_lines = [x for x in output.splitlines() if "CONFLICT" in x]
+        for line in notification_lines:
+            if "Merge conflict in " in line:
+                conflict_filenames.append(line.split('Merge conflict in ')[-1])
+            elif "deleted in " in line:
+                conflict_filenames.append(line.split(' deleted in ')[0].split(': ')[-1])
+            else:
+                print("Unknown CONFLICT filename detection: %s" % line)
+                continue
+    return conflict_filenames
