@@ -1,5 +1,6 @@
-import pickle, json, csv, os, shutil
+import csv, os, shutil
 import fixer
+import json, urllib2
 
 DEBUG = False
 
@@ -90,6 +91,21 @@ def findAllBranches(repo):
         if "origin/" in r.name:
             branchList.append(r.name)
     return branchList
+
+def getLang(repo):
+    remote_url = repo.remotes[0].url
+    
+    # handle SSH url, else handle HTTPS url; Warning: BLACK MAGIC!!!
+    if (remote_url[-4:] == '.git'):
+        owner = remote_url.split(":")[-1][:-4].split("/")[-2]
+        project = remote_url.split(":")[-1][:-4].split("/")[-1]
+    else:
+        owner = remote_url.split("/")[-2]
+        project = remote_url.split("/")[-1]
+
+    rawData = urllib2.urlopen('https://api.github.com/repos/' + owner + '/' + project + '/languages').read()
+    jsonData = json.loads(rawData)
+    return max(jsonData, key=jsonData.get)
 
 def union(a, b):
     for each in b:

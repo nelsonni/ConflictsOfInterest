@@ -2,6 +2,7 @@ import os, sys, time
 import json, urllib2
 from datetime import datetime
 from subprocess import Popen, PIPE
+from collections import Counter
 
 # GitPython library
 from git import *
@@ -51,8 +52,9 @@ def main():
     #     return False
 
 def execute(repo):
-    
+    language = data_manager.getLang(repo)
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
+    totalResolutions = []
     for commitHash in commitsDict:
         commit = commitsDict[commitHash]
         conflicts = conflict_finder.findConflicts(repo, commit)
@@ -62,7 +64,12 @@ def execute(repo):
              leftDict = conflictSet[0]
              rightDict = conflictSet[1]
 
-             print classifier.classifyResolutionPattern(leftDict['lines'], rightDict['lines'], resolutions)
+             classes = classifier.classifyResolutionPattern(leftDict['lines'], rightDict['lines'], resolutions)
+             totalResolutions += classes
+
+    c = Counter( totalResolutions )
+    print(language)
+    print( c.items() )
 
     print("Off to the mining races on %s..." % PROJECT)
 
