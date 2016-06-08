@@ -105,3 +105,23 @@ def getConflictSets(repo, filename):
 
     print conflictSets
     return conflictSets
+
+def getDiff(A, B):
+    # if not commit.parents:
+    #     diff = commit.diff(EMPTY_TREE_SHA, create_patch=True)
+    # else:
+    #     diff = commit.diff(commit.parents[0], create_patch=True)
+
+    diff = A.diff(B, create_patch=True)
+
+    msg = ""
+    for k in diff:
+        try:
+            msg = k.diff.decode(defenc)
+        except UnicodeDecodeError:
+            continue
+
+    additions = ''.join([x[1:] for x in msg.splitlines() if x.startswith('+')])
+    subtractions = ''.join([x[1:] for x in msg.splitlines() if x.startswith('-')])
+    
+    return additions, subtractions
