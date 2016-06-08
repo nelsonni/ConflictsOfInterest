@@ -10,20 +10,21 @@ def findConflicts(repo, commit):
         # not enough commits for a conflict to emerge
         return []
     else:
-        conflict_set = []
-        output = proto_merge(repo, commit.parents[0], commit.parents[1])
-        p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        rc = p.returncode
-        print("output: %s" % output)
+        try:
+            conflict_set = []
+            output = proto_merge(repo, commit.parents[0], commit.parents[1])
 
-        filenames = findConflictFilenames(output)
-        print("filenames:", filenames)
-        for filename in filenames:
-            print("finding conflict sets for: %s" % filename)
-            conflict_set += getConflictSets(repo, commit, filename)
+            filenames = findConflictFilenames(output)
+            for filename in filenames:
+                conflict_set += getConflictSets(repo, commit, filename)
 
-        proto_reset()
+            p = Popen(["git", "merge", "--abort"], stdin=None, stdout=PIPE, stderr=PIPE)
+            out, err = p.communicate()
+            rc = p.returncode
+            
+        finally:
+            proto_reset()
+
         return conflict_set
 
 def getResolution(repo, commit):
@@ -88,6 +89,10 @@ def getConflictSets(repo, commit, filename):
                 rightDict['file'] = path
                 rightDict['SHA'] = rightSHA
                 rightDict['lines'] = os.linesep.join(rightLines)
+
+                print("Left:\n%s\n\n\n\n" % leftDict['lines'])
+                print("RightDict:\n%s\n\n\n\n" % rightDict['lines'])
+                print("Merge:\n%s\n\n\n\n" % middleDict['lines'])
 
                 conflictSets.append([leftDict, middleDict, rightDict])
 
