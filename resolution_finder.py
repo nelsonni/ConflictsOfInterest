@@ -73,14 +73,11 @@ def getDiff(A, B):
 
     msg = ""
     for k in diff:
-        try:
-            msg = k.diff.decode(defenc)
-        except UnicodeDecodeError:
-            continue
+        msg = k.diff.encode("utf-8")
 
     additions = [str(x[1:]) for x in msg.splitlines() if x.startswith('+')]
     subtractions = [str(x[1:]) for x in msg.splitlines() if x.startswith('-')]
-    
+
     return additions, subtractions
 
 def proto_merge(repo, base, commit):
@@ -128,10 +125,6 @@ def proto_commit(output):
     p = Popen(["git", "commit", "-m", "will be deleted"], stdin=None, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
     rc = p.returncode
-
-
-
-# ============================================================================================
 
 
 

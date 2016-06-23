@@ -1,17 +1,13 @@
 import os, sys, time
-import json, urllib2
 from datetime import datetime
-from subprocess import Popen, PIPE
 from collections import Counter
 
 # GitPython library
 from git import *
-from git.compat import defenc
 
 import fixer
 import config_loader as config
 import pattern_classifier as classifier
-import git_puller as puller
 import data_manager
 import conflict_finder
 import resolution_finder
@@ -52,22 +48,37 @@ def main():
     #     return False
 
 def execute(repo):
+    print('Getting Language')
     language = data_manager.getLang(repo)
     mergesDict, commitsDict = data_manager.loadDictionaries(repo)
     totalResolutions = []
+    unicodeErrors = 0
     for commitHash in commitsDict:
         commit = commitsDict[commitHash]
+        print('Finding conflicts and resolutions for: %s' % commitHash)
         conflicts = conflict_finder.findConflicts(repo, commit)
-        resolutions = resolution_finder.findResolutions(repo, commit)
 
-        for conflictSet in conflicts:
-             leftDict = conflictSet[0]
-             rightDict = conflictSet[1]
+        try:
+            resolutions = resolution_finder.findResolutions(repo, commit)
+        except UnicodeDecodeError as e:
+            print(str(e))
+            unicodeErrors += 1
+            #TODO Maybe better handle unicode issues?
+            continue
 
-             classes = classifier.classifyResolutionPattern(leftDict['lines'], rightDict['lines'], resolutions)
-             totalResolutions += classes
+        # patternNumber = 0
+        # for conflictSet in conflicts:
+        #     if patternNumber % 100 == 0:
+        #         print('Patterns classified: %d' % patternNumber)
+        #     leftDict = conflictSet[0]
+        #     rightDict = conflictSet[1]
+        #
+        #     classes = classifier.classifyResolutionPattern(leftDict['lines'], rightDict['lines'], resolutions)
+        #     totalResolutions += classes
+        #     patternNumber += 1
 
     c = Counter( totalResolutions )
+    print("%d conflict commits skipped because of unicode errors." % unicodeErrors)
     print(language)
     print( c.items() )
 

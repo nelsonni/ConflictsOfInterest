@@ -165,7 +165,7 @@ def isInterweavingAugmented(A, B, M):
 
 def formatLines(lines):
     if type(lines) == unicode:
-        lines = unicodedata.normalize('NFKD', lines).encode('ascii','ignore')
+        lines = unicodedata.normalize('NFKD', lines).encode('utf-8','ignore')
         lines = os.linesep.join([s for s in lines.splitlines() if s])
     else:
         return lines
