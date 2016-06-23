@@ -9,3 +9,6 @@ config.json
 
 # Mac local storage
 .DS_Store
+
+#Intellij files
+.idea/
